@@ -1,0 +1,94 @@
+utility_meter:
+  ev_charging_daily:
+    source: sensor.ev_charging_lifetime
+    cycle: daily
+
+  ev_charging_monthly:
+    source: sensor.ev_charging_lifetime
+    cycle: monthly
+
+  ev_charging_billing:
+    source: sensor.ev_charging_lifetime
+
+  ev_charging_yearly:
+    source: sensor.ev_charging_lifetime
+    cycle: yearly
+
+  ev_solar_backed_daily:
+    source: sensor.ev_solar_backed_lifetime
+    cycle: daily
+
+  ev_solar_backed_monthly:
+    source: sensor.ev_solar_backed_lifetime
+    cycle: monthly
+
+  ev_solar_backed_yearly:
+    source: sensor.ev_solar_backed_lifetime
+    cycle: yearly
+
+  ev_grid_daily:
+    source: sensor.ev_grid_lifetime
+    cycle: daily
+
+  ev_grid_monthly:
+    source: sensor.ev_grid_lifetime
+    cycle: monthly
+
+  ev_grid_yearly:
+    source: sensor.ev_grid_lifetime
+    cycle: yearly
+
+sensor:
+  - platform: integration
+    source: sensor.ev_solar_backed_power
+    name: EV Solar Backed Lifetime
+    unique_id: ev_solar_backed_lifetime
+    unit_time: h
+    method: left
+    max_sub_interval:
+      minutes: 5
+    round: 3
+
+  - platform: integration
+    source: sensor.ev_from_grid_power
+    name: EV Grid Lifetime
+    unique_id: ev_grid_lifetime
+    unit_time: h
+    method: left
+    max_sub_interval:
+      minutes: 5
+    round: 3
+
+automation:
+  - alias: Initialize EV Source Meters
+    id: initialize_ev_source_meters
+    description: Set EV source utility meters to zero if they were created before their source sensors were available.
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - wait_template: >
+          {{
+            states('sensor.ev_solar_backed_lifetime') not in ['unknown', 'unavailable', 'none', 'None', '']
+            and states('sensor.ev_grid_lifetime') not in ['unknown', 'unavailable', 'none', 'None', '']
+          }}
+        timeout: "00:02:00"
+        continue_on_timeout: false
+      - repeat:
+          for_each:
+            - sensor.ev_solar_backed_daily
+            - sensor.ev_solar_backed_monthly
+            - sensor.ev_solar_backed_yearly
+            - sensor.ev_grid_daily
+            - sensor.ev_grid_monthly
+            - sensor.ev_grid_yearly
+          sequence:
+            - condition: template
+              value_template: >
+                {{ states(repeat.item) in ['unknown', 'unavailable', 'none', 'None', ''] }}
+            - service: utility_meter.calibrate
+              target:
+                entity_id: "{{ repeat.item }}"
+              data:
+                value: 0

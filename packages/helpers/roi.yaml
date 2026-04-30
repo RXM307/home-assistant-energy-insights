@@ -1,0 +1,9 @@
+input_number:
+  solar_system_net_cost:
+    name: Solar System Net Cost
+    min: 0
+    max: 50000
+    step: 1
+    unit_of_measurement: $
+    icon: mdi:cash-multiple
+    mode: box

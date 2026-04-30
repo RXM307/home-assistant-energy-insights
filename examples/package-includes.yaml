@@ -1,0 +1,37 @@
+# Example package include structure for Home Assistant.
+#
+# Copy selected files into your Home Assistant config and include them with:
+#
+# homeassistant:
+#   packages: !include_dir_named packages
+#
+# Example layout:
+#
+# packages/
+#   helpers/
+#     battery.yaml
+#     billing.yaml
+#     ev.yaml
+#     forecasting.yaml
+#     roi.yaml
+#     vpp.yaml
+#   meters/
+#     solar.yaml
+#     home.yaml
+#     grid.yaml
+#     ev.yaml
+#     battery.yaml
+#     annual_trueup.yaml
+#   core/
+#     credits.yaml
+#     energy_mix.yaml
+#     battery_runtime.yaml
+#     ev.yaml
+#     forecasting.yaml
+#     vpp.yaml
+#     records.yaml
+#
+# adapters/
+#   tesla/
+#     ev.yaml
+#     powerwall.yaml

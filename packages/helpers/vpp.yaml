@@ -1,0 +1,45 @@
+input_number:
+  vpp_last_event_energy:
+    name: VPP Last Event Energy
+    min: 0
+    max: 100
+    step: 0.01
+    unit_of_measurement: kWh
+    icon: mdi:flash
+    mode: box
+
+  vpp_energy_lifetime:
+    name: VPP Energy Lifetime
+    min: 0
+    max: 10000
+    step: 0.01
+    unit_of_measurement: kWh
+    icon: mdi:home-battery-outline
+    mode: box
+
+  vpp_rate_per_kwh:
+    name: VPP Rate per kWh
+    min: 0
+    max: 1
+    step: 0.01
+    unit_of_measurement: $/kWh
+    icon: mdi:lightning-bolt-circle
+    mode: box
+
+  vpp_rebate_amount:
+    name: VPP Rebate Amount
+    min: 0
+    max: 2000
+    step: 1
+    unit_of_measurement: $
+    icon: mdi:cash-100
+    mode: box
+
+  battery_net_cost:
+    name: Battery Net Cost
+    min: 0
+    max: 15000
+    step: 1
+    unit_of_measurement: $
+    icon: mdi:battery-clock
+    mode: box

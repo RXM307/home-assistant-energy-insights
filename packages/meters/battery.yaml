@@ -1,0 +1,82 @@
+utility_meter:
+  battery_charged_daily:
+    source: sensor.battery_charged_lifetime
+    cycle: daily
+
+  battery_charged_monthly:
+    source: sensor.battery_charged_lifetime
+    cycle: monthly
+
+  battery_charged_yearly:
+    source: sensor.battery_charged_lifetime
+    cycle: yearly
+
+  battery_discharged_daily:
+    source: sensor.battery_discharged_lifetime
+    cycle: daily
+
+  battery_discharged_monthly:
+    source: sensor.battery_discharged_lifetime
+    cycle: monthly
+
+  battery_discharged_yearly:
+    source: sensor.battery_discharged_lifetime
+    cycle: yearly
+
+  battery_charged_from_solar_daily:
+    source: sensor.battery_charged_from_solar_lifetime
+    cycle: daily
+
+  battery_charged_from_solar_monthly:
+    source: sensor.battery_charged_from_solar_lifetime
+    cycle: monthly
+
+  battery_charged_from_solar_yearly:
+    source: sensor.battery_charged_from_solar_lifetime
+    cycle: yearly
+
+  battery_charged_from_grid_daily:
+    source: sensor.battery_charged_from_grid_lifetime
+    cycle: daily
+
+  battery_charged_from_grid_monthly:
+    source: sensor.battery_charged_from_grid_lifetime
+    cycle: monthly
+
+  battery_charged_from_grid_yearly:
+    source: sensor.battery_charged_from_grid_lifetime
+    cycle: yearly
+
+automation:
+  - alias: Initialize Battery Charge Meters
+    id: initialize_battery_charge_meters
+    description: Set battery charge utility meters to zero if they were created before their source sensors were available.
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - wait_template: >
+          {{ states('sensor.battery_charged_lifetime') not in ['unknown', 'unavailable', 'none', 'None', ''] }}
+        timeout: "00:02:00"
+        continue_on_timeout: false
+      - repeat:
+          for_each:
+            - sensor.battery_charged_daily
+            - sensor.battery_charged_monthly
+            - sensor.battery_charged_yearly
+            - sensor.battery_charged_from_solar_daily
+            - sensor.battery_charged_from_solar_monthly
+            - sensor.battery_charged_from_solar_yearly
+            - sensor.battery_charged_from_grid_daily
+            - sensor.battery_charged_from_grid_monthly
+            - sensor.battery_charged_from_grid_yearly
+          sequence:
+            - condition: template
+              value_template: >
+                {{ states(repeat.item) in ['unknown', 'unavailable', 'none', 'None', ''] }}
+            - service: utility_meter.calibrate
+              target:
+                entity_id: "{{ repeat.item }}"
+              data:
+                value: 0

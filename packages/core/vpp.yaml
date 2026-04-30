@@ -1,0 +1,132 @@
+template:
+  - sensor:
+      - name: VPP Last Event Earnings
+        unique_id: vpp_last_event_earnings
+        unit_of_measurement: "$"
+        device_class: monetary
+        icon: mdi:cash-fast
+        state: >
+          {% set energy = states('input_number.vpp_last_event_energy') | float(0) %}
+          {% set rate = states('input_number.vpp_rate_per_kwh') | float(0) %}
+          {{ (energy * rate) | round(2) }}
+
+      - name: VPP Earnings Lifetime
+        unique_id: vpp_earnings_lifetime
+        unit_of_measurement: "$"
+        device_class: monetary
+        icon: mdi:cash
+        state: >
+          {% set energy = states('input_number.vpp_energy_lifetime') | float(0) %}
+          {% set rate = states('input_number.vpp_rate_per_kwh') | float(0) %}
+          {{ (energy * rate) | round(2) }}
+
+      - name: VPP Total Value
+        unique_id: vpp_total_value
+        unit_of_measurement: "$"
+        device_class: monetary
+        icon: mdi:cash-multiple
+        state: >
+          {% set earnings = states('sensor.vpp_earnings_lifetime') | float(0) %}
+          {% set rebate = states('input_number.vpp_rebate_amount') | float(0) %}
+          {{ (earnings + rebate) | round(2) }}
+
+      - name: Battery VPP Net Cost
+        unique_id: battery_vpp_net_cost
+        unit_of_measurement: "$"
+        device_class: monetary
+        icon: mdi:battery-heart-variant
+        state: >
+          {% set cost = states('input_number.battery_net_cost') | float(0) %}
+          {% set rebate = states('input_number.vpp_rebate_amount') | float(0) %}
+          {{ [cost - rebate, 0] | max | round(2) if cost > 0 else 'unknown' }}
+
+      - name: Battery VPP Remaining
+        unique_id: battery_vpp_remaining
+        unit_of_measurement: "$"
+        device_class: monetary
+        icon: mdi:cash-clock
+        state: >
+          {% set net_cost_value = states('sensor.battery_vpp_net_cost') %}
+          {% set earnings = states('sensor.vpp_earnings_lifetime') | float(0) %}
+          {% if net_cost_value in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            unknown
+          {% else %}
+            {% set net_cost = net_cost_value | float(0) %}
+            {{ [net_cost - earnings, 0] | max | round(2) }}
+          {% endif %}
+
+      - name: Battery VPP Progress
+        unique_id: battery_vpp_progress
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:chart-arc
+        state: >
+          {% set earnings = states('sensor.vpp_earnings_lifetime') | float(0) %}
+          {% set net_cost_value = states('sensor.battery_vpp_net_cost') %}
+          {% if net_cost_value in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            unknown
+          {% else %}
+            {% set net_cost = net_cost_value | float(0) %}
+            {{ ([earnings / net_cost * 100, 100] | min) | round(1) if net_cost > 0 else 'unknown' }}
+          {% endif %}
+
+      - name: VPP Earnings Average Monthly
+        unique_id: vpp_earnings_average_monthly
+        unit_of_measurement: "$"
+        device_class: monetary
+        icon: mdi:calendar-month
+        state: >
+          {% set earnings = states('sensor.vpp_earnings_lifetime') | float(0) %}
+          {% set install = states('input_datetime.solar_install_date') %}
+          {% if install in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            unknown
+          {% else %}
+            {% set days = ((as_timestamp(now()) - as_timestamp(install)) / 86400) | float(0) %}
+            {% set months = [days / 30.4375, 1] | max %}
+            {{ (earnings / months) | round(2) }}
+          {% endif %}
+
+      - name: Battery VPP Months Remaining
+        unique_id: battery_vpp_months_remaining
+        unit_of_measurement: mo
+        state_class: measurement
+        icon: mdi:calendar-range
+        state: >
+          {% set remaining_value = states('sensor.battery_vpp_remaining') %}
+          {% set monthly = states('sensor.vpp_earnings_average_monthly') | float(0) %}
+          {% if remaining_value in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            unknown
+          {% else %}
+            {% set remaining = remaining_value | float(0) %}
+            {{ (remaining / monthly) | round(1) if remaining > 0 and monthly > 0 else 'unknown' }}
+          {% endif %}
+
+      - name: Battery VPP Years Remaining
+        unique_id: battery_vpp_years_remaining
+        unit_of_measurement: yr
+        state_class: measurement
+        icon: mdi:calendar-range
+        state: >
+          {% set months = states('sensor.battery_vpp_months_remaining') | float(0) %}
+          {{ (months / 12) | round(1) if months > 0 else 'unknown' }}
+
+script:
+  apply_vpp_event:
+    alias: Apply VPP Event
+    description: Add the last VPP event energy to lifetime totals and clear the event input.
+    icon: mdi:check-circle
+    mode: single
+    sequence:
+      - variables:
+          lifetime: "{{ states('input_number.vpp_energy_lifetime') | float(0) }}"
+          event: "{{ states('input_number.vpp_last_event_energy') | float(0) }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.vpp_energy_lifetime
+        data:
+          value: "{{ (lifetime + event) | round(2) }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.vpp_last_event_energy
+        data:
+          value: 0

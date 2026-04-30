@@ -1,0 +1,55 @@
+utility_meter:
+  grid_import_daily:
+    source: sensor.grid_import_lifetime
+    cycle: daily
+
+  grid_import_monthly:
+    source: sensor.grid_import_lifetime
+    cycle: monthly
+
+  grid_import_billing:
+    source: sensor.grid_import_lifetime
+
+  grid_import_yearly:
+    source: sensor.grid_import_lifetime
+    cycle: yearly
+
+  grid_export_total_daily:
+    source: sensor.grid_export_total_lifetime
+    cycle: daily
+
+  grid_export_total_monthly:
+    source: sensor.grid_export_total_lifetime
+    cycle: monthly
+
+  grid_export_total_billing:
+    source: sensor.grid_export_total_lifetime
+
+  grid_export_total_yearly:
+    source: sensor.grid_export_total_lifetime
+    cycle: yearly
+
+  grid_export_solar_daily:
+    source: sensor.grid_export_solar_lifetime
+    cycle: daily
+
+  grid_export_solar_monthly:
+    source: sensor.grid_export_solar_lifetime
+    cycle: monthly
+
+  grid_export_solar_yearly:
+    source: sensor.grid_export_solar_lifetime
+    cycle: yearly
+
+  grid_export_battery_daily:
+    source: sensor.grid_export_battery_lifetime
+    cycle: daily
+
+  grid_export_battery_monthly:
+    source: sensor.grid_export_battery_lifetime
+    cycle: monthly
+
+  grid_export_battery_yearly:
+    source: sensor.grid_export_battery_lifetime
+    cycle: yearly
+

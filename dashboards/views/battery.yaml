@@ -1,0 +1,524 @@
+title: Battery
+path: battery
+icon: mdi:battery-heart-variant
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    column_span: 2
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Battery
+        subtitle: Live status, runtime, and charge source
+
+      - type: custom:mushroom-chips-card
+        grid_options:
+          columns: full
+        alignment: justify
+        chips:
+          - type: template
+            entity: sensor.home_battery_percent
+            tap_action:
+              action: more-info
+            icon: mdi:battery
+            icon_color: green
+            content: >-
+              {{ "%.0f" | format(states('sensor.home_battery_percent') | float(0)) }}%
+          - type: template
+            entity: sensor.home_battery_power
+            tap_action:
+              action: more-info
+            icon: >-
+              {% set p = states('sensor.home_battery_power') | float(0) %}
+              {{ 'mdi:battery-arrow-up' if p < -0.1 else 'mdi:battery-arrow-down' if p > 0.1 else 'mdi:battery' }}
+            icon_color: >-
+              {% set p = states('sensor.home_battery_power') | float(0) %}
+              {{ 'green' if p < -0.1 else 'teal' if p > 0.1 else 'grey' }}
+            content: >-
+              {{ "%.2f" | format(states('sensor.home_battery_power') | float(0)) }} kW
+          - type: template
+            entity: sensor.grid_status
+            tap_action:
+              action: more-info
+            icon: mdi:transmission-tower
+            icon_color: blue
+            content: >-
+              {{ states('sensor.grid_status') }}
+          - type: template
+            entity: binary_sensor.storm_watch_active
+            tap_action:
+              action: more-info
+            icon: mdi:weather-lightning-rainy
+            icon_color: amber
+            content: >-
+              Storm {{ iif(is_state('binary_sensor.storm_watch_active','on'),'On','Off') }}
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 4
+        square: false
+        cards:
+          - type: custom:mushroom-template-card
+            entity: sensor.battery_runtime_to_backup_reserve_hours
+            primary: Backup Reserve
+            secondary: >-
+              {% set raw = states('sensor.battery_runtime_to_backup_reserve_hours') %}
+              {% set eta = states('sensor.battery_runtime_to_backup_reserve_eta') %}
+              {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+                {% set mins = (raw | float(0) * 60) | round(0) | int %}
+                {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+              {% elif states('sensor.home_battery_power') | float(0) <= 0.1 %}
+                Not discharging
+              {% else %}
+                Reserve met
+              {% endif %}
+            icon: mdi:battery-lock
+            icon_color: green
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.battery_runtime_to_20_percent_hours
+            primary: To 20%
+            secondary: >-
+              {% set raw = states('sensor.battery_runtime_to_20_percent_hours') %}
+              {% set eta = states('sensor.battery_runtime_to_20_percent_eta') %}
+              {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+                {% set mins = (raw | float(0) * 60) | round(0) | int %}
+                {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+              {% elif states('sensor.home_battery_power') | float(0) <= 0.1 %}
+                Not discharging
+              {% else %}
+                At or below 20%
+              {% endif %}
+            icon: mdi:battery-20
+            icon_color: amber
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.battery_runtime_to_full_hours
+            primary: To 100%
+            secondary: >-
+              {% set raw = states('sensor.battery_runtime_to_full_hours') %}
+              {% set eta = states('sensor.battery_runtime_to_full_eta') %}
+              {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+                {% set mins = (raw | float(0) * 60) | round(0) | int %}
+                {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+              {% elif states('sensor.home_battery_power') | float(0) >= -0.1 %}
+                Not charging
+              {% else %}
+                Full
+              {% endif %}
+            icon: mdi:battery-charging-high
+            icon_color: green
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.battery_runtime_to_empty_hours
+            primary: To Empty
+            secondary: >-
+              {% set raw = states('sensor.battery_runtime_to_empty_hours') %}
+              {% set eta = states('sensor.battery_runtime_to_empty_eta') %}
+              {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+                {% set mins = (raw | float(0) * 60) | round(0) | int %}
+                {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+              {% else %}
+                Not discharging
+              {% endif %}
+            icon: mdi:battery-alert
+            icon_color: red
+            layout: vertical
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_charged_daily
+            name: Charged Today
+            icon: mdi:battery-plus
+            variables:
+              metric_color: "#43aa8b"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_discharged_daily
+            name: Discharged Today
+            icon: mdi:battery-minus
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_charged_from_solar_daily
+            name: Solar Charge
+            icon: mdi:solar-power
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_charged_from_grid_daily
+            name: Grid Charge
+            icon: mdi:transmission-tower-import
+            variables:
+              metric_color: "#277da1"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_charged_monthly
+            name: Charged Month
+            icon: mdi:calendar-month
+            variables:
+              metric_color: "#43aa8b"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_discharged_monthly
+            name: Discharged Month
+            icon: mdi:calendar-month-outline
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_charged_yearly
+            name: Charged Year
+            icon: mdi:calendar
+            variables:
+              metric_color: "#43aa8b"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_discharged_yearly
+            name: Discharged Year
+            icon: mdi:calendar-outline
+            variables:
+              metric_color: "#4d908e"
+
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Charge Source
+        subtitle: Battery charging split for today
+
+      - type: custom:mushroom-chips-card
+        grid_options:
+          columns: full
+        alignment: justify
+        chips:
+          - type: template
+            entity: sensor.battery_charged_from_solar_daily
+            tap_action:
+              action: more-info
+            icon: mdi:solar-power
+            icon_color: amber
+            content: >-
+              Solar {{ "%.0f" | format((states('sensor.battery_charged_from_solar_daily') | float(0)) / (states('sensor.battery_charged_daily') | float(0)) * 100 if (states('sensor.battery_charged_daily') | float(0)) > 0 else 0) }}%
+          - type: template
+            entity: sensor.battery_charged_from_grid_daily
+            tap_action:
+              action: more-info
+            icon: mdi:transmission-tower
+            icon_color: blue
+            content: >-
+              Grid {{ "%.0f" | format((states('sensor.battery_charged_from_grid_daily') | float(0)) / (states('sensor.battery_charged_daily') | float(0)) * 100 if (states('sensor.battery_charged_daily') | float(0)) > 0 else 0) }}%
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Battery Charge Source, 30d
+          show_states: true
+        graph_span: 30d
+        stacked: true
+        apex_config:
+          chart:
+            height: 300px
+          colors:
+            - "#f9c74f"
+            - "#277da1"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 4
+            labels:
+              rotate: -30
+              minHeight: 56
+              datetimeUTC: false
+              datetimeFormatter:
+                day: MMM d
+                month: MMM yyyy
+        all_series_config:
+          type: column
+          float_precision: 2
+        series:
+          - entity: sensor.battery_charged_from_solar_daily
+            name: From Solar
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.battery_charged_from_grid_daily
+            name: From Grid
+            group_by:
+              func: last
+              duration: 1d
+
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: VPP
+        subtitle: Event entry, value, and battery payoff
+
+      - type: custom:mushroom-chips-card
+        grid_options:
+          columns: full
+        alignment: justify
+        chips:
+          - type: template
+            entity: sensor.vpp_earnings_lifetime
+            icon: mdi:cash
+            icon_color: green
+            content: >-
+              Earned ${{ "%.2f" | format(states('sensor.vpp_earnings_lifetime') | float(0)) }}
+          - type: template
+            entity: input_number.vpp_rebate_amount
+            icon: mdi:gift
+            icon_color: amber
+            content: >-
+              Rebate ${{ "%.0f" | format(states('input_number.vpp_rebate_amount') | float(0)) }}
+          - type: template
+            entity: sensor.vpp_total_value
+            icon: mdi:cash-multiple
+            icon_color: green
+            content: >-
+              Total ${{ "%.2f" | format(states('sensor.vpp_total_value') | float(0)) }}
+          - type: template
+            entity: sensor.battery_vpp_progress
+            icon: mdi:chart-arc
+            icon_color: green
+            content: >-
+              {% set progress = states('sensor.battery_vpp_progress') %}
+              {{ progress ~ '% paid back' if progress not in ['unknown', 'unavailable', 'none', 'None', ''] else 'Setup needed' }}
+
+      - type: gauge
+        grid_options:
+          columns: full
+        entity: sensor.battery_vpp_progress
+        name: Battery VPP Payback Progress
+        min: 0
+        max: 100
+        severity:
+          red: 0
+          yellow: 35
+          green: 75
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 2
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.vpp_earnings_lifetime
+            name: Earnings
+            icon: mdi:cash
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.vpp_total_value
+            name: Total Value
+            icon: mdi:cash-multiple
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_vpp_net_cost
+            name: Battery Net Cost
+            icon: mdi:battery-heart-variant
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_vpp_remaining
+            name: Remaining
+            icon: mdi:progress-clock
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.vpp_earnings_average_monthly
+            name: Avg Monthly
+            icon: mdi:chart-line
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.battery_vpp_years_remaining
+            name: Years Left
+            icon: mdi:calendar-clock
+            variables:
+              metric_color: "#577590"
+
+      - type: horizontal-stack
+        grid_options:
+          columns: full
+        cards:
+          - type: custom:mushroom-template-card
+            entity: input_number.vpp_last_event_energy
+            primary: Last Event
+            secondary: >-
+              {{ "%.2f" | format(states('input_number.vpp_last_event_energy') | float(0)) }} kWh
+            icon: mdi:flash
+            icon_color: amber
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.vpp_last_event_earnings
+            primary: Event Value
+            secondary: >-
+              ${{ "%.2f" | format(states('sensor.vpp_last_event_earnings') | float(0)) }}
+            icon: mdi:cash-fast
+            icon_color: green
+            layout: vertical
+
+      - type: custom:mushroom-template-card
+        grid_options:
+          columns: full
+        primary: Apply VPP Event
+        secondary: >-
+          Add {{ "%.2f" | format(states('input_number.vpp_last_event_energy') | float(0)) }} kWh to lifetime
+        icon: mdi:check-circle
+        icon_color: green
+        tap_action:
+          action: call-service
+          service: script.apply_vpp_event
+          confirmation:
+            text: Add this VPP event to lifetime totals?
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Battery Power and State of Charge, 24h
+          show_states: true
+        graph_span: 24h
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#43aa8b"
+            - "#90be6d"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          stroke:
+            curve: smooth
+          markers:
+            size: 0
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 6
+            labels:
+              datetimeUTC: false
+              datetimeFormatter:
+                hour: HH:mm
+                day: MMM d
+        all_series_config:
+          stroke_width: 3
+          float_precision: 2
+        series:
+          - entity: sensor.home_battery_power
+            name: Battery Power
+            type: line
+            yaxis_id: power
+            group_by:
+              func: avg
+              duration: 5min
+          - entity: sensor.home_battery_percent
+            name: Battery %
+            type: line
+            yaxis_id: percent
+            group_by:
+              func: avg
+              duration: 15min
+        yaxis:
+          - id: power
+            min: -6
+            max: 6
+            decimals: 2
+          - id: percent
+            opposite: true
+            min: 0
+            max: 100
+            decimals: 0
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Battery Monthly Energy, 12 Months
+          show_states: true
+        graph_span: 365d
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#43aa8b"
+            - "#4d908e"
+            - "#f9c74f"
+            - "#277da1"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 6
+            labels:
+              datetimeUTC: false
+              datetimeFormatter:
+                month: MMM yyyy
+                year: yyyy
+        all_series_config:
+          stroke_width: 3
+          type: line
+          float_precision: 2
+        series:
+          - entity: sensor.battery_charged_monthly
+            name: Charged
+            group_by:
+              func: last
+              duration: 1mo
+          - entity: sensor.battery_discharged_monthly
+            name: Discharged
+            group_by:
+              func: last
+              duration: 1mo
+          - entity: sensor.battery_charged_from_solar_monthly
+            name: From Solar
+            group_by:
+              func: last
+              duration: 1mo
+          - entity: sensor.battery_charged_from_grid_monthly
+            name: From Grid
+            group_by:
+              func: last
+              duration: 1mo

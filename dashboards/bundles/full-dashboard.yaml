@@ -1,0 +1,4977 @@
+---
+title: Home Assistant Energy Insights
+button_card_templates:
+  insights_record_tile:
+    show_state: false
+    show_label: false
+    tap_action:
+      action: more-info
+    styles:
+      card:
+      - padding: 12px
+      - min-height: 148px
+      - text-align: left
+      grid:
+      - grid-template-areas: '"i n" "value value" "date date"'
+      - grid-template-columns: 28px 1fr
+      - grid-template-rows: 24px min-content min-content
+      img_cell:
+      - width: 24px
+      - height: 24px
+      - justify-self: start
+      icon:
+      - width: 18px
+      name:
+      - justify-self: start
+      - align-self: center
+      - font-size: 12px
+      - line-height: 14px
+      - white-space: normal
+      custom_fields:
+        value:
+        - justify-self: start
+        - margin-top: 8px
+        - font-size: 18px
+        - line-height: 20px
+        - font-weight: 700
+        - white-space: normal
+        date:
+        - justify-self: start
+        - margin-top: 6px
+        - font-size: 11px
+        - line-height: 14px
+        - opacity: 0.68
+        - white-space: normal
+  insights_metric_tile:
+    show_state: false
+    show_label: false
+    tap_action:
+      action: more-info
+    custom_fields:
+      value: |-
+        [[[
+          const raw = entity?.state;
+          if (raw === undefined || raw === "unknown" || raw === "unavailable") return "n/a";
+
+          const unit = entity?.attributes?.unit_of_measurement || "";
+          const n = Number(raw);
+
+          if (Number.isFinite(n)) {
+            const abs = Math.abs(n);
+            const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+
+            if (unit === "$") return `$${n.toFixed(decimals)}`;
+            if (unit === "h") {
+              const totalMinutes = Math.round(n * 60);
+              const hours = Math.floor(totalMinutes / 60);
+              const minutes = totalMinutes % 60;
+              return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            }
+            if (unit === "%") return `${n.toFixed(decimals)}%`;
+            if (["mi", "A", "V", "kW", "kWh", "W", "Wh", "d", "yr", "yrs", "°F", "°C"].includes(unit)) {
+              return `${n.toFixed(decimals)} ${unit}`;
+            }
+            return `${n.toFixed(decimals)}${unit ? ` ${unit}` : ""}`;
+          }
+
+          return String(raw).replaceAll("_", " ");
+        ]]]
+    styles:
+      card:
+      - padding: 8px
+      - min-height: 86px
+      - text-align: left
+      - "--insights-metric-color": |-
+          [[[
+            if (variables?.metric_color) return variables.metric_color;
+
+            const id = entity?.entity_id || "";
+            const friendly = entity?.attributes?.friendly_name || "";
+            const name = this?._config?.name || "";
+            const key = `${id} ${friendly} ${name} ${variables?.metric_color_key || ""}`.toLowerCase();
+            const n = Number(entity?.state);
+
+            if (key.includes("grid_net") || key.includes("net grid") || key.includes("net_usage")) {
+              return Number.isFinite(n) && n <= 0 ? "#4d908e" : "#277da1";
+            }
+            if (key.includes("grid_export_solar") || key.includes("solar_export")) return "#f9c74f";
+            if (key.includes("grid_export_battery") || key.includes("battery_export")) return "#43aa8b";
+            if (key.includes("saving") || key.includes("earning") || key.includes("value")) return "#90be6d";
+            if (key.includes("cost") || key.includes("bill") || key.includes("remaining") || key.includes("breakeven")) return "#f94144";
+            if (key.includes("solar") || key.includes("production")) return "#f9c74f";
+            if (key.includes("ev") || key.includes("charger") || key.includes("wall connector") || key.includes("range") || key.includes("mile") || key.includes("odometer")) return "#9b5de5";
+            if (key.includes("battery") || key.includes("vpp") || key.includes("reserve")) return "#43aa8b";
+            if (key.includes("export") || key.includes("credit")) return "#4d908e";
+            if (key.includes("grid") || key.includes("import")) return "#277da1";
+            if (key.includes("home") || key.includes("load")) return "#f94144";
+            if (key.includes("date") || key.includes("month") || key.includes("year") || key.includes("calendar") || key.includes("time")) return "#577590";
+            return "#577590";
+          ]]]
+      grid:
+      - grid-template-areas: '"i n" "value value"'
+      - grid-template-columns: 24px 1fr
+      - grid-template-rows: 22px min-content
+      img_cell:
+      - width: 22px
+      - height: 22px
+      - justify-self: start
+      icon:
+      - width: 17px
+      - color: var(--insights-metric-color)
+      name:
+      - justify-self: start
+      - align-self: center
+      - font-size: 11px
+      - line-height: 13px
+      - white-space: normal
+      custom_fields:
+        value:
+        - justify-self: start
+        - margin-top: 8px
+        - font-size: 17px
+        - line-height: 20px
+        - font-weight: 700
+        - white-space: normal
+        - color: var(--insights-metric-color)
+views:
+- title: Overview
+  path: overview
+  icon: mdi:view-dashboard
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      title: Energy Now
+      subtitle: Live status, power flow, and daily totals
+    - type: conditional
+      conditions:
+      - entity: sensor.grid_status
+        state_not: on_grid
+      card:
+        type: markdown
+        content: |
+          ## Off Grid / Islanded
+          The home is not on normal grid power. Check battery level and home load.
+    - type: conditional
+      conditions:
+      - entity: binary_sensor.storm_watch_active
+        state: 'on'
+      card:
+        type: markdown
+        content: |
+          ## Storm Watch Active
+          Backup reserve behavior may be different while Storm Watch is active.
+    - type: custom:mushroom-chips-card
+      alignment: justify
+      chips:
+      - type: template
+        entity: binary_sensor.storm_watch_active
+        tap_action:
+          action: more-info
+        icon: mdi:weather-lightning-rainy
+        icon_color: amber
+        content: Storm {{ iif(is_state('binary_sensor.storm_watch_active','on'), 'On',
+          'Off') }}
+      - type: template
+        entity: sensor.home_battery_percent
+        tap_action:
+          action: more-info
+        icon: "{% set p = states('sensor.home_battery_power') | float(0) %} {{ 'mdi:battery-arrow-up'
+          if p < -0.1 else 'mdi:battery-arrow-down' if p > 0.1 else 'mdi:battery'
+          }}"
+        icon_color: "{% set p = states('sensor.home_battery_power') | float(0) %}
+          {{ 'green' if p < -0.1 else 'teal' if p > 0.1 else 'grey' }}"
+        content: '{{ "%.0f" | format(states(''sensor.home_battery_percent'') | float(0))
+          }}%'
+      - type: template
+        entity: sensor.grid_net_power
+        tap_action:
+          action: more-info
+        icon: "{% set island = states('sensor.grid_status') %} {% set p = states('sensor.grid_net_power')
+          | float(0) %} {{ 'mdi:transmission-tower-off' if island != 'on_grid' else
+          'mdi:transmission-tower-import' if p > 0.1 else 'mdi:transmission-tower-export'
+          if p < -0.1 else 'mdi:transmission-tower' }}"
+        icon_color: "{% set island = states('sensor.grid_status') %} {% set p = states('sensor.grid_net_power')
+          | float(0) %} {{ 'red' if island != 'on_grid' else 'blue' if p > 0.1 else
+          'teal' if p < -0.1 else 'grey' }}"
+        content: '{% set island = states(''sensor.grid_status'') %} {% set p = states(''sensor.grid_net_power'')
+          | float(0) %} {{ ''Off'' if island != ''on_grid'' else (''Imp '' ~ ("%.1f"
+          | format(p | abs)) if p > 0.1 else ''Exp '' ~ ("%.1f" | format(p | abs))
+          if p < -0.1 else "%.1f" | format(p | abs)) }}'
+      - type: template
+        entity: sensor.ev_charging_power
+        tap_action:
+          action: more-info
+        icon: "{% set p = states('sensor.ev_charging_power') | float(0) %} {{ 'mdi:ev-station'
+          if p > 0.1 else 'mdi:car-electric' }}"
+        icon_color: "{% set p = states('sensor.ev_charging_power') | float(0) %} {{
+          'purple' if p > 0.1 else 'grey' }}"
+        content: '{% set p = states(''sensor.ev_charging_power'') | float(0) %} {{
+          ''Chg '' ~ ("%.1f" | format(p)) if p > 0.1 else ''Idle'' }}'
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: gauge
+        entity: sensor.home_solar_power
+        name: Solar Power
+        min: 0
+        max: 10
+        needle: true
+        severity:
+          red: 0
+          yellow: 3
+          green: 7
+      - type: gauge
+        entity: sensor.home_load_no_ev_power
+        name: Home No EV
+        min: 0
+        max: 15
+        needle: true
+        severity:
+          green: 0
+          yellow: 5
+          red: 10
+      - type: gauge
+        entity: sensor.grid_net_power
+        name: Net Grid Power
+        min: -15
+        max: 15
+        needle: true
+        severity:
+          green: -15
+          yellow: -2
+          red: 5
+      - type: gauge
+        entity: sensor.home_battery_power
+        name: Battery Power
+        min: -6
+        max: 12
+        needle: true
+        severity:
+          green: -6
+          yellow: 0
+          red: 3
+    - type: grid
+      columns: 3
+      square: false
+      cards:
+      - type: gauge
+        entity: sensor.home_load_power
+        name: Home Load
+        min: 0
+        max: 20
+        needle: true
+        severity:
+          green: 0
+          yellow: 7
+          red: 14
+      - type: custom:mushroom-template-card
+        entity: sensor.ev_charging_power
+        tap_action:
+          action: more-info
+        primary: EV Charging
+        secondary: '{% set power = states(''sensor.ev_charging_power'') | float(0)
+          %} {% set amps = states(''sensor.ev_charge_current'') | float(0) %} {{ "%.2f"
+          | format(power) }} kW{% if power > 0.1 and amps > 0 %} / {{ "%.0f" | format(amps)
+          }} A{% endif %} / EV {{ "%.0f" | format(states(''sensor.ev_battery_percent'')
+          | float(0)) }}%'
+        icon: mdi:ev-station
+        icon_color: purple
+        layout: vertical
+      - type: gauge
+        entity: sensor.home_battery_percent
+        name: Battery %
+        min: 0
+        max: 100
+        severity:
+          red: 20
+          yellow: 50
+          green: 80
+    - type: custom:mushroom-title-card
+      title: Daily Totals
+      subtitle: Solar, grid, EV, and home mix since midnight
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_daily
+        name: Solar Generated
+        icon: mdi:solar-power
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_self_consumed_daily
+        name: Solar Used
+        icon: mdi:home-lightning-bolt
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.daily_net_export_credit
+        name: Net Export
+        icon: mdi:transmission-tower
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_total_daily
+        name: Export
+        icon: mdi:transmission-tower-export
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_no_ev_daily
+        name: Home No EV
+        icon: mdi:home-remove
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_daily
+        name: EV Charging
+        icon: mdi:ev-station
+        variables:
+          metric_color: "#9b5de5"
+    - type: custom:mushroom-title-card
+      title: Billing Snapshot
+      subtitle: Current bill, daily net, and annual credit bank
+    - type: grid
+      columns: 3
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_actual_total
+        name: Current Bill
+        icon: mdi:receipt-text
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.daily_net_grid_cost
+        name: Today Net
+        icon: mdi:cash-clock
+        variables:
+          metric_color_key: cost
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.annual_net_export_credit_value
+        name: Annual Credit Value
+        icon: mdi:cash-plus
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.annual_net_export_credit
+        name: Annual Credit Bank
+        icon: mdi:battery-medium
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_actual_projected
+        name: Projected Bill
+        icon: mdi:cash-clock
+        variables:
+          metric_color: "#f3722c"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_billing_cycle_days_remaining
+        name: Cycle Days Left
+        icon: mdi:calendar-end
+        variables:
+          metric_color: "#577590"
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      title: Battery Runtime
+      subtitle: Reserve, empty, and recharge timing
+    - type: grid
+      columns: 3
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.battery_runtime_to_backup_reserve_hours
+        primary: To Backup Reserve
+        secondary: |-
+          {% set raw = states('sensor.battery_runtime_to_backup_reserve_hours') %} {% set eta = states('sensor.battery_runtime_to_backup_reserve_eta') %} {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set mins = (raw | float(0) * 60) | round(0) | int %}
+            {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+          {% elif states('sensor.home_battery_power') | float(0) <= 0.1 %}
+            Not discharging
+          {% else %}
+            Reserve met
+          {% endif %}
+        icon: mdi:battery-lock
+        icon_color: green
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.battery_runtime_to_empty_hours
+        primary: To Empty
+        secondary: |-
+          {% set raw = states('sensor.battery_runtime_to_empty_hours') %} {% set eta = states('sensor.battery_runtime_to_empty_eta') %} {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set mins = (raw | float(0) * 60) | round(0) | int %}
+            {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+          {% else %}
+            Not discharging
+          {% endif %}
+        icon: mdi:battery-alert
+        icon_color: red
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.battery_runtime_to_full_hours
+        primary: To 100%
+        secondary: |-
+          {% set raw = states('sensor.battery_runtime_to_full_hours') %} {% set eta = states('sensor.battery_runtime_to_full_eta') %} {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set mins = (raw | float(0) * 60) | round(0) | int %}
+            {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+          {% elif states('sensor.home_battery_power') | float(0) >= -0.1 %}
+            Not charging
+          {% else %}
+            Full
+          {% endif %}
+        icon: mdi:battery-charging-high
+        icon_color: green
+        layout: vertical
+    - type: custom:mushroom-title-card
+      title: Today's Mix
+      subtitle: Home No EV source split
+    - type: custom:mushroom-chips-card
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.home_no_ev_mix_solar_daily_percent
+        icon: mdi:solar-power
+        icon_color: amber
+        content: Solar {{ states('sensor.home_no_ev_mix_solar_daily_percent') }}%
+      - type: template
+        entity: sensor.home_no_ev_mix_battery_daily_percent
+        icon: mdi:battery
+        icon_color: green
+        content: Battery {{ states('sensor.home_no_ev_mix_battery_daily_percent')
+          }}%
+      - type: template
+        entity: sensor.home_no_ev_mix_grid_daily_percent
+        icon: mdi:transmission-tower
+        icon_color: blue
+        content: Grid {{ states('sensor.home_no_ev_mix_grid_daily_percent') }}%
+    - type: grid
+      columns: 3
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_no_ev_solar_backed_daily
+        name: Solar
+        icon: mdi:solar-power
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_no_ev_battery_backed_daily
+        name: Battery
+        icon: mdi:battery-arrow-down
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_no_ev_grid_daily
+        name: Grid
+        icon: mdi:transmission-tower
+        variables:
+          metric_color: "#277da1"
+    - type: custom:mushroom-title-card
+      title: Today's Peaks
+      subtitle: Highest power seen today
+    - type: grid
+      columns: 3
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_solar_power_daily
+        tap_action:
+          action: more-info
+        primary: Solar Peak
+        secondary: '{{ "%.2f" | format(states(''sensor.peak_solar_power_daily'') |
+          float(0)) }} kW'
+        icon: mdi:solar-power
+        icon_color: amber
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_home_load_no_ev_daily
+        tap_action:
+          action: more-info
+        primary: Home No EV Peak
+        secondary: '{{ "%.2f" | format(states(''sensor.peak_home_load_no_ev_daily'')
+          | float(0)) }} kW'
+        icon: mdi:home-remove
+        icon_color: red
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_grid_import_power_daily
+        tap_action:
+          action: more-info
+        primary: Grid Import Peak
+        secondary: '{{ "%.2f" | format(states(''sensor.peak_grid_import_power_daily'')
+          | float(0)) }} kW'
+        icon: mdi:transmission-tower-import
+        icon_color: blue
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_grid_export_power_daily
+        tap_action:
+          action: more-info
+        primary: Grid Export Peak
+        secondary: '{{ "%.2f" | format(states(''sensor.peak_grid_export_power_daily'')
+          | float(0)) }} kW'
+        icon: mdi:transmission-tower-export
+        icon_color: teal
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_battery_charge_power_daily
+        tap_action:
+          action: more-info
+        primary: Battery Charge Peak
+        secondary: '{{ "%.2f" | format(states(''sensor.peak_battery_charge_power_daily'')
+          | float(0)) }} kW'
+        icon: mdi:battery-arrow-up
+        icon_color: green
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_ev_charging_power_daily
+        tap_action:
+          action: more-info
+        primary: EV Peak
+        secondary: '{{ "%.2f" | format(states(''sensor.peak_ev_charging_power_daily'')
+          | float(0)) }} kW'
+        icon: mdi:ev-station
+        icon_color: purple
+        layout: vertical
+    - type: weather-forecast
+      entity: weather.forecast_home
+      name: Today
+      forecast_type: daily
+      show_forecast: true
+    - type: custom:mushroom-title-card
+      title: Solar Forecast
+      subtitle: Production estimates and peak timing
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_production_today
+        name: Estimated Today
+        icon: mdi:solar-power
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_production_today_remaining
+        name: Remaining Today
+        icon: mdi:weather-sunset
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_production_tomorrow
+        name: Tomorrow
+        icon: mdi:calendar-tomorrow
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_current_hour
+        name: This Hour
+        icon: mdi:clock-outline
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_next_hour
+        name: Next Hour
+        icon: mdi:clock-plus-outline
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.power_production_now
+        name: Power Now
+        icon: mdi:flash
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.power_highest_peak_time_today
+        name: Peak Time
+        icon: mdi:chart-bell-curve
+        variables:
+          metric_color: "#f9c74f"
+        custom_fields:
+          value: |-
+            [[[
+              const defaults = new Set(["", "unknown", "unavailable", "none", "None", "null"]);
+              const attrs = entity?.attributes || {};
+              const candidates = [
+                entity?.state,
+                attrs.datetime,
+                attrs.time,
+                attrs.peak_time,
+                attrs.highest_peak_time,
+                attrs.next_peak_time,
+                attrs.start,
+              ].filter((v) => v !== undefined && v !== null && !defaults.has(String(v)));
+
+              const parseTime = (raw) => {
+                const value = String(raw).trim();
+                let parsed = new Date(value);
+                if (!Number.isNaN(parsed.getTime())) return parsed;
+
+                const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                if (timeMatch) {
+                  parsed = new Date();
+                  parsed.setHours(Number(timeMatch[1]), Number(timeMatch[2]), Number(timeMatch[3] || 0), 0);
+                  return parsed;
+                }
+
+                const amPmMatch = value.match(/^(\d{1,2}):(\d{2})\s*([ap]m)$/i);
+                if (amPmMatch) {
+                  let hours = Number(amPmMatch[1]) % 12;
+                  if (amPmMatch[3].toLowerCase() === "pm") hours += 12;
+                  parsed = new Date();
+                  parsed.setHours(hours, Number(amPmMatch[2]), 0, 0);
+                  return parsed;
+                }
+
+                return null;
+              };
+
+              const peak = candidates.map(parseTime).find((date) => date && !Number.isNaN(date.getTime()));
+              if (!peak) return candidates[0] ? String(candidates[0]).replaceAll("_", " ") : "n/a";
+
+              const diffMs = peak.getTime() - Date.now();
+              const absMinutes = Math.round(Math.abs(diffMs) / 60000);
+              const hours = Math.floor(absMinutes / 60);
+              const minutes = absMinutes % 60;
+              const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+              const relative = absMinutes <= 2 ? "now" : diffMs > 0 ? `in ${duration}` : `${duration} ago`;
+              const clock = peak.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+              return `${relative} (${clock})`;
+            ]]]
+    - type: custom:mushroom-title-card
+      title: Live Flow Trends
+      subtitle: Recent power behavior
+    - type: custom:apexcharts-card
+      section_mode: true
+      header:
+        show: true
+        title: Solar, Home, and EV, 24h
+        show_states: true
+      graph_span: 24h
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#f9c74f"
+        - "#f94144"
+        - "#9b5de5"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            hideOverlappingLabels: true
+            trim: true
+            datetimeUTC: false
+            datetimeFormatter:
+              hour: HH:mm
+              day: MMM d
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.home_solar_power
+        name: Solar
+        color: "#f9c74f"
+        type: area
+        group_by:
+          func: avg
+          duration: 5min
+      - entity: sensor.home_load_no_ev_power
+        name: Home No EV
+        color: "#f94144"
+        type: line
+        group_by:
+          func: avg
+          duration: 5min
+      - entity: sensor.ev_charging_power
+        name: EV
+        color: "#9b5de5"
+        type: line
+        group_by:
+          func: avg
+          duration: 5min
+    - type: custom:apexcharts-card
+      section_mode: true
+      header:
+        show: true
+        title: Grid and Battery Flow, 24h
+        show_states: true
+      graph_span: 24h
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#277da1"
+        - "#43aa8b"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            hideOverlappingLabels: true
+            trim: true
+            datetimeUTC: false
+            datetimeFormatter:
+              hour: HH:mm
+              day: MMM d
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.grid_net_power
+        name: Grid
+        color: "#277da1"
+        type: area
+        yaxis_id: power
+        group_by:
+          func: avg
+          duration: 5min
+      - entity: sensor.home_battery_power
+        name: Battery
+        color: "#43aa8b"
+        type: line
+        yaxis_id: power
+        group_by:
+          func: avg
+          duration: 5min
+      yaxis:
+      - id: power
+        min: -8
+        max: 8
+        decimals: 2
+    - type: custom:apexcharts-card
+      section_mode: true
+      header:
+        show: true
+        title: Home No EV Source, 30d
+        show_states: true
+      graph_span: 30d
+      span:
+        end: day
+      stacked: true
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#f9c74f"
+        - "#4d908e"
+        - "#277da1"
+        - "#f94144"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            rotate: -30
+            minHeight: 56
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      series:
+      - entity: sensor.home_no_ev_solar_backed_daily
+        name: Solar
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.home_no_ev_battery_backed_daily
+        name: Battery
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.home_no_ev_grid_daily
+        name: Grid
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.home_load_no_ev_daily
+        name: Home No EV
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+- title: Analytics
+  path: analytics
+  icon: mdi:chart-box
+  type: sections
+  max_columns: 2
+  sections:
+  - type: grid
+    column_span: 3
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Energy Analytics
+      subtitle: Comparisons, mixes, and longer-range tracking
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Recent Energy Totals, 7d
+        show_states: true
+      graph_span: 7d
+      span:
+        end: day
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#f9c74f"
+        - "#f94144"
+        - "#9b5de5"
+        - "#277da1"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: 0
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            format: MMM d
+            hideOverlappingLabels: false
+            trim: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        type: column
+        float_precision: 2
+      series:
+      - entity: sensor.solar_generated_daily
+        name: Solar
+        color: "#f9c74f"
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.home_load_no_ev_daily
+        name: Home No EV
+        color: "#f94144"
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.ev_charging_daily
+        name: EV
+        color: "#9b5de5"
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.grid_import_daily
+        name: Grid Import
+        color: "#277da1"
+        group_by:
+          func: max
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Energy Mix
+      subtitle: Raw source activity; import/export detail remains in Grid Balance
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.energy_mix_solar_daily_percent
+        tap_action:
+          action: more-info
+        icon: mdi:solar-power
+        icon_color: amber
+        content: Solar {{ states('sensor.energy_mix_solar_daily_percent') }}%
+      - type: template
+        entity: sensor.energy_mix_battery_daily_percent
+        tap_action:
+          action: more-info
+        icon: mdi:battery
+        icon_color: green
+        content: Battery {{ states('sensor.energy_mix_battery_daily_percent') }}%
+      - type: template
+        entity: sensor.energy_mix_grid_daily_percent
+        tap_action:
+          action: more-info
+        icon: mdi:transmission-tower
+        icon_color: blue
+        content: Grid {{ states('sensor.energy_mix_grid_daily_percent') }}%
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Source Activity, 30d
+        show_states: true
+      graph_span: 30d
+      span:
+        end: day
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#f9c74f"
+        - "#43aa8b"
+        - "#277da1"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            hideOverlappingLabels: true
+            trim: true
+            datetimeUTC: false
+            format: MMM d
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        type: column
+        float_precision: 2
+      series:
+      - entity: sensor.solar_generated_daily
+        name: Solar Generated
+        color: "#f9c74f"
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.battery_discharged_daily
+        name: Battery Discharged
+        color: "#4d908e"
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.grid_import_daily
+        name: Grid Import
+        color: "#277da1"
+        group_by:
+          func: max
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Grid Balance
+      subtitle: Import, export, and net usage
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Grid Import vs Export, 30d
+        show_states: true
+      graph_span: 30d
+      span:
+        end: day
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#277da1"
+        - "#4d908e"
+        - "#577590"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.grid_import_daily
+        name: Import
+        color: "#277da1"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.grid_export_total_daily
+        name: Export
+        color: "#4d908e"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.grid_net_usage_daily
+        name: Net Grid
+        color: "#577590"
+        type: line
+        group_by:
+          func: max
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Net Credits
+      subtitle: Daily change and configurable annual credit bank
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.daily_net_export_credit
+        tap_action:
+          action: more-info
+        icon: mdi:calendar-today
+        icon_color: "{{ iif(states('sensor.daily_net_export_credit') | float(0) >=
+          0, 'green', 'red') }}"
+        content: Today {{ "%.1f" | format(states('sensor.daily_net_export_credit')
+          | float(0)) }} kWh
+      - type: template
+        entity: sensor.annual_net_export_credit
+        tap_action:
+          action: more-info
+        icon: mdi:calendar-sync
+        icon_color: "{{ iif(states('sensor.annual_net_export_credit') | float(0) >
+          0, 'green', 'grey') }}"
+        content: Bank {{ "%.1f" | format(states('sensor.annual_net_export_credit')
+          | float(0)) }} kWh
+      - type: template
+        entity: sensor.annual_net_export_credit_value
+        tap_action:
+          action: more-info
+        icon: mdi:cash
+        icon_color: green
+        content: ${{ "%.2f" | format(states('sensor.annual_net_export_credit_value')
+          | float(0)) }}
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Credit Bank Trend, 30d
+        show_states: true
+      graph_span: 30d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#90be6d"
+        - "#43aa8b"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.daily_net_export_credit
+        name: Daily Change
+        color: "#4d908e"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.annual_net_export_credit
+        name: Credit Bank
+        color: "#4d908e"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Monthly Net Credits, 12 Months
+        show_states: true
+      graph_span: 365d
+      apex_config:
+        chart:
+          height: 300px
+        colors:
+        - "#43aa8b"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              month: MMM yyyy
+              year: yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.monthly_net_export_credit
+        name: Monthly kWh
+        color: "#4d908e"
+        type: column
+        group_by:
+          func: last
+          duration: 1mo
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Export Source
+      subtitle: Grid export split between solar and battery
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Grid Export Source, 30d
+        show_states: false
+      graph_span: 30d
+      span:
+        end: day
+      stacked: true
+      apex_config:
+        chart:
+          height: 360px
+        colors:
+        - "#f9c74f"
+        - "#43aa8b"
+        - "#4d908e"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            format: MMM d
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        type: column
+        float_precision: 2
+      series:
+      - entity: sensor.grid_export_solar_daily
+        name: Solar Export
+        color: "#f9c74f"
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.grid_export_battery_daily
+        name: Battery Export
+        color: "#4d908e"
+        group_by:
+          func: max
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Cost Comparison
+      subtitle: Actual bill compared with no-solar estimate
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Cost vs Savings, 30d
+        show_states: true
+      graph_span: 30d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#f94144"
+        - "#f3722c"
+        - "#90be6d"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.billing_cost_actual_total
+        name: Actual Bill
+        color: "#f94144"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_cost_without_solar_total
+        name: Without Solar
+        color: "#f9c74f"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_solar_savings_total
+        name: Solar Savings
+        color: "#90be6d"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Battery Comparison
+      subtitle: Charge source bars with charge and discharge reference lines
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Battery Daily Energy, 30d
+        show_states: true
+      graph_span: 30d
+      span:
+        end: day
+      stacked: true
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#f9c74f"
+        - "#277da1"
+        - "#43aa8b"
+        - "#4d908e"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        float_precision: 2
+      series:
+      - entity: sensor.battery_charged_from_solar_daily
+        name: From Solar
+        color: "#f9c74f"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.battery_charged_from_grid_daily
+        name: From Grid
+        color: "#277da1"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.battery_charged_daily
+        name: Charged
+        color: "#43aa8b"
+        type: line
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.battery_discharged_daily
+        name: Discharged Out
+        color: "#4d908e"
+        type: line
+        stroke_dash: 5
+        group_by:
+          func: max
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: EV Source Comparison
+      subtitle: Solar-backed charging compared with grid charging
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: EV Charging Source, 30d
+        show_states: true
+      graph_span: 30d
+      span:
+        end: day
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#f9c74f"
+        - "#277da1"
+        - "#9b5de5"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.ev_solar_backed_daily
+        name: Solar-Backed
+        color: "#f9c74f"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.ev_grid_daily
+        name: Grid
+        color: "#277da1"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Load Composition
+      subtitle: Home demand compared with EV charging
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.home_no_ev_mix_solar_daily_percent
+        tap_action:
+          action: more-info
+        icon: mdi:solar-power
+        icon_color: amber
+        content: Solar {{ states('sensor.home_no_ev_mix_solar_daily_percent') }}%
+      - type: template
+        entity: sensor.home_no_ev_mix_battery_daily_percent
+        tap_action:
+          action: more-info
+        icon: mdi:battery
+        icon_color: green
+        content: Battery {{ states('sensor.home_no_ev_mix_battery_daily_percent')
+          }}%
+      - type: template
+        entity: sensor.home_no_ev_mix_grid_daily_percent
+        tap_action:
+          action: more-info
+        icon: mdi:transmission-tower
+        icon_color: blue
+        content: Grid {{ states('sensor.home_no_ev_mix_grid_daily_percent') }}%
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Home No EV Source, 30d
+        show_states: true
+      graph_span: 30d
+      span:
+        end: day
+      stacked: true
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#f9c74f"
+        - "#4d908e"
+        - "#277da1"
+        - "#f94144"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            hideOverlappingLabels: true
+            trim: true
+            datetimeUTC: false
+            format: MMM d
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        float_precision: 2
+      series:
+      - entity: sensor.home_no_ev_solar_backed_daily
+        name: Solar
+        color: "#f9c74f"
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.home_no_ev_battery_backed_daily
+        name: Battery
+        color: "#4d908e"
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.home_no_ev_grid_daily
+        name: Grid
+        color: "#277da1"
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Home Load vs EV, 7d
+        show_states: false
+      graph_span: 7d
+      span:
+        end: day
+      stacked: true
+      apex_config:
+        chart:
+          height: 360px
+        colors:
+        - "#f94144"
+        - "#9b5de5"
+        - "#f94144"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 3
+          labels:
+            show: true
+            rotate: 0
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            format: MMM d
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        float_precision: 2
+      series:
+      - entity: sensor.home_load_no_ev_daily
+        name: Home No EV
+        color: "#f94144"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.ev_charging_daily
+        name: EV Charging
+        color: "#9b5de5"
+        type: column
+        group_by:
+          func: max
+          duration: 1d
+      - entity: sensor.home_load_daily
+        name: Total Home
+        color: "#f94144"
+        type: line
+        group_by:
+          func: max
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Rate Impact
+      subtitle: Actual bill and solar savings over the last week
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Bill and Savings, 7d
+        show_states: false
+      graph_span: 7d
+      apex_config:
+        chart:
+          height: 360px
+        colors:
+        - "#f94144"
+        - "#90be6d"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 3
+          labels:
+            show: true
+            rotate: 0
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            format: MMM d
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.billing_cost_actual_total
+        name: Actual Bill
+        color: "#f94144"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_solar_savings_total
+        name: Solar Savings
+        color: "#90be6d"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      yaxis:
+      - decimals: 2
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Bill Offset Trend
+      subtitle: Billing-cycle solar offset as the bill changes
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Billing Offset Trend, 7d
+        show_states: true
+      graph_span: 7d
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#90be6d"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 3
+          labels:
+            show: true
+            rotate: 0
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            format: MMM d
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 1
+      series:
+      - entity: sensor.billing_solar_offset_percent
+        name: Bill Offset
+        color: "#f9c74f"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      yaxis:
+      - min: 0
+        max: 100
+        decimals: 0
+  - type: grid
+    column_span: 3
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Peak Power
+      subtitle: Daily peaks split into home/grid and battery/EV views
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Production and Home Peaks, 7d
+        show_states: true
+      graph_span: 7d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#f9c74f"
+        - "#f94144"
+        - "#e76f51"
+        - "#277da1"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 2
+          labels:
+            show: true
+            rotate: 0
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            format: MMM d
+            hideOverlappingLabels: false
+            trim: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.peak_solar_power_daily
+        name: Solar Peak
+        color: "#f9c74f"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.peak_home_load_daily
+        name: Home Load Peak
+        color: "#f94144"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.peak_home_load_no_ev_daily
+        name: Home No EV Peak
+        color: "#e76f51"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.peak_grid_import_power_daily
+        name: Grid Import Peak
+        color: "#277da1"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Export, Battery, and EV Peaks, 7d
+        show_states: true
+      graph_span: 7d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#4d908e"
+        - "#43aa8b"
+        - "#2a9d8f"
+        - "#9b5de5"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 3
+          labels:
+            show: true
+            rotate: 0
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            format: MMM d
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.peak_grid_export_power_daily
+        name: Grid Export Peak
+        color: "#4d908e"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.peak_battery_charge_power_daily
+        name: Battery Charge Peak
+        color: "#43aa8b"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.peak_battery_discharge_power_daily
+        name: Battery Discharge Peak
+        color: "#4d908e"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.peak_ev_charging_power_daily
+        name: EV Charging Peak
+        color: "#9b5de5"
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Power Records
+      subtitle: This month, this year, and lifetime
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_solar_power_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_solar_power_monthly'') |
+          float(0)) }} kW'
+        secondary: Solar Peak {{ '\n' }}{{ state_attr('sensor.peak_solar_power_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:solar-power
+        icon_color: amber
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #f9c74f;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_home_load_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_home_load_monthly'') | float(0))
+          }} kW'
+        secondary: Home Load Peak {{ '\n' }}{{ state_attr('sensor.peak_home_load_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:home-lightning-bolt
+        icon_color: red
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #f94144;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_home_load_no_ev_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_home_load_no_ev_monthly'')
+          | float(0)) }} kW'
+        secondary: Home No EV Peak {{ '\n' }}{{ state_attr('sensor.peak_home_load_no_ev_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:home-remove
+        icon_color: red
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #f94144;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_grid_import_power_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_grid_import_power_monthly'')
+          | float(0)) }} kW'
+        secondary: Grid Import Peak {{ '\n' }}{{ state_attr('sensor.peak_grid_import_power_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:transmission-tower-import
+        icon_color: blue
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #277da1;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_grid_export_power_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_grid_export_power_monthly'')
+          | float(0)) }} kW'
+        secondary: Grid Export Peak {{ '\n' }}{{ state_attr('sensor.peak_grid_export_power_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:transmission-tower-export
+        icon_color: teal
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #4d908e;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_battery_charge_power_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_battery_charge_power_monthly'')
+          | float(0)) }} kW'
+        secondary: Battery Charge Peak {{ '\n' }}{{ state_attr('sensor.peak_battery_charge_power_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:battery-arrow-up
+        icon_color: green
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #43aa8b;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_battery_discharge_power_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_battery_discharge_power_monthly'')
+          | float(0)) }} kW'
+        secondary: Battery Discharge Peak {{ '\n' }}{{ state_attr('sensor.peak_battery_discharge_power_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:battery-arrow-down
+        icon_color: teal
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #4d908e;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_ev_charging_power_monthly
+        primary: '{{ "%.2f" | format(states(''sensor.peak_ev_charging_power_monthly'')
+          | float(0)) }} kW'
+        secondary: EV Charging Peak {{ '\n' }}{{ state_attr('sensor.peak_ev_charging_power_monthly','peak_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:ev-station
+        icon_color: purple
+        card_mod:
+          style: |
+            mushroom-state-item .primary {
+              color: #9b5de5;
+              font-weight: 700;
+            }
+        tap_action:
+          action: more-info
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Peak Comparison
+      subtitle: Monthly, yearly, and lifetime maxima
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_solar_power_monthly
+        primary: Solar
+        secondary: M {{ "%.2f" | format(states('sensor.peak_solar_power_monthly')
+          | float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_solar_power_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','solar_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:solar-power
+        icon_color: amber
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_home_load_monthly
+        primary: Home
+        secondary: M {{ "%.2f" | format(states('sensor.peak_home_load_monthly') |
+          float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_home_load_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','home_load_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:home-lightning-bolt
+        icon_color: red
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_home_load_no_ev_monthly
+        primary: Home No EV
+        secondary: M {{ "%.2f" | format(states('sensor.peak_home_load_no_ev_monthly')
+          | float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_home_load_no_ev_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','home_load_no_ev_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:home-remove
+        icon_color: red
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_grid_import_power_monthly
+        primary: Grid Import
+        secondary: M {{ "%.2f" | format(states('sensor.peak_grid_import_power_monthly')
+          | float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_grid_import_power_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','grid_import_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:transmission-tower-import
+        icon_color: blue
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_grid_export_power_monthly
+        primary: Grid Export
+        secondary: M {{ "%.2f" | format(states('sensor.peak_grid_export_power_monthly')
+          | float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_grid_export_power_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','grid_export_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:transmission-tower-export
+        icon_color: teal
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_battery_charge_power_monthly
+        primary: Battery Charge
+        secondary: M {{ "%.2f" | format(states('sensor.peak_battery_charge_power_monthly')
+          | float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_battery_charge_power_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','battery_charge_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:battery-arrow-up
+        icon_color: green
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_battery_discharge_power_monthly
+        primary: Battery Discharge
+        secondary: M {{ "%.2f" | format(states('sensor.peak_battery_discharge_power_monthly')
+          | float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_battery_discharge_power_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','battery_discharge_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:battery-arrow-down
+        icon_color: teal
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.peak_ev_charging_power_monthly
+        primary: EV Charging
+        secondary: M {{ "%.2f" | format(states('sensor.peak_ev_charging_power_monthly')
+          | float(0)) }} kW • Y {{ "%.2f" | format(states('sensor.peak_ev_charging_power_yearly')
+          | float(0)) }} kW {{ '\n' }}L {{ "%.2f" | format(state_attr('sensor.power_records_lifetime','ev_charging_kw')
+          | float(0)) }} kW
+        multiline_secondary: true
+        icon: mdi:ev-station
+        icon_color: purple
+        card_mod:
+          style: |
+            mushroom-state-item .secondary {
+              white-space: pre-line;
+            }
+        tap_action:
+          action: more-info
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Best Energy Days
+      subtitle: Year record plus month and lifetime context
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''solar_generated_kwh'')
+          | float(0)) }} kWh'
+        secondary: Solar Generated {{ '\n' }}{{ state_attr('sensor.daily_energy_records_yearly','solar_generated_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:solar-power
+        icon_color: amber
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #f9c74f; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: ${{ "%.2f" | format(state_attr('sensor.daily_energy_records_yearly','solar_savings_usd')
+          | float(0)) }}
+        secondary: Solar Savings {{ '\n' }}{{ state_attr('sensor.daily_energy_records_yearly','solar_savings_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:cash-plus
+        icon_color: green
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #90be6d; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''home_load_kwh'')
+          | float(0)) }} kWh'
+        secondary: Home Load {{ '\n' }}{{ state_attr('sensor.daily_energy_records_yearly','home_load_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:home-lightning-bolt
+        icon_color: red
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #f94144; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''home_load_no_ev_kwh'')
+          | float(0)) }} kWh'
+        secondary: Home No EV {{ '\n' }}{{ state_attr('sensor.daily_energy_records_yearly','home_load_no_ev_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:home-remove
+        icon_color: red
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #f94144; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''ev_charging_kwh'')
+          | float(0)) }} kWh'
+        secondary: EV Charging {{ '\n' }}{{ state_attr('sensor.daily_energy_records_yearly','ev_charging_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:ev-station
+        icon_color: purple
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #9b5de5; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''grid_import_kwh'')
+          | float(0)) }} kWh'
+        secondary: Grid Import {{ '\n' }}{{ state_attr('sensor.daily_energy_records_yearly','grid_import_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:transmission-tower-import
+        icon_color: blue
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #277da1; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''grid_export_kwh'')
+          | float(0)) }} kWh'
+        secondary: Grid Export {{ '\n' }}{{ state_attr('sensor.daily_energy_records_yearly','grid_export_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:transmission-tower-export
+        icon_color: teal
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #4d908e; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Best vs Lowest Energy Days
+      subtitle: This year
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: Solar
+        secondary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''solar_generated_kwh'')
+          | float(0)) }} kWh {{ ''\n'' }}{{ state_attr(''sensor.daily_energy_records_yearly'',''solar_generated_date'')
+          }} {{ ''\n'' }}Low {{ "%.2f" | format(state_attr(''sensor.daily_energy_low_records_yearly'',''solar_generated_kwh'')
+          | float(0)) }} kWh {{ ''\n'' }}{{ state_attr(''sensor.daily_energy_low_records_yearly'',''solar_generated_date'')
+          }}'
+        multiline_secondary: true
+        icon: mdi:solar-power
+        icon_color: amber
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: Home No EV
+        secondary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''home_load_no_ev_kwh'')
+          | float(0)) }} kWh {{ ''\n'' }}{{ state_attr(''sensor.daily_energy_records_yearly'',''home_load_no_ev_date'')
+          }} {{ ''\n'' }}Low {{ "%.2f" | format(state_attr(''sensor.daily_energy_low_records_yearly'',''home_load_no_ev_kwh'')
+          | float(0)) }} kWh {{ ''\n'' }}{{ state_attr(''sensor.daily_energy_low_records_yearly'',''home_load_no_ev_date'')
+          }}'
+        multiline_secondary: true
+        icon: mdi:home-remove
+        icon_color: red
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_records_yearly
+        primary: Grid Import
+        secondary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_records_yearly'',''grid_import_kwh'')
+          | float(0)) }} kWh {{ ''\n'' }}{{ state_attr(''sensor.daily_energy_records_yearly'',''grid_import_date'')
+          }} {{ ''\n'' }}Low {{ "%.2f" | format(state_attr(''sensor.daily_energy_low_records_yearly'',''grid_import_kwh'')
+          | float(0)) }} kWh {{ ''\n'' }}{{ state_attr(''sensor.daily_energy_low_records_yearly'',''grid_import_date'')
+          }}'
+        multiline_secondary: true
+        icon: mdi:transmission-tower-import
+        icon_color: blue
+        tap_action:
+          action: more-info
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Lowest Energy Days
+      subtitle: Year low plus month and lifetime context
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_low_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_low_records_yearly'',''solar_generated_kwh'')
+          | float(0)) }} kWh'
+        secondary: Solar Generated {{ '\n' }}{{ state_attr('sensor.daily_energy_low_records_yearly','solar_generated_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:solar-power
+        icon_color: amber
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #f9c74f; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_low_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_low_records_yearly'',''home_load_no_ev_kwh'')
+          | float(0)) }} kWh'
+        secondary: Home No EV {{ '\n' }}{{ state_attr('sensor.daily_energy_low_records_yearly','home_load_no_ev_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:home-remove
+        icon_color: red
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #f94144; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.daily_energy_low_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.daily_energy_low_records_yearly'',''grid_import_kwh'')
+          | float(0)) }} kWh'
+        secondary: Grid Import {{ '\n' }}{{ state_attr('sensor.daily_energy_low_records_yearly','grid_import_date')
+          }}
+        multiline_secondary: true
+        icon: mdi:transmission-tower-import
+        icon_color: blue
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #277da1; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Best Solar Month
+      subtitle: Annual and lifetime records
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.solar_monthly_generation_records_yearly
+        primary: '{{ "%.2f" | format(state_attr(''sensor.solar_monthly_generation_records_yearly'',''solar_generated_kwh'')
+          | float(0)) }} kWh'
+        secondary: This Year {{ '\n' }}{{ state_attr('sensor.solar_monthly_generation_records_yearly','solar_generated_month')
+          }}
+        multiline_secondary: true
+        icon: mdi:solar-power
+        icon_color: amber
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #f9c74f; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+      - type: custom:mushroom-template-card
+        entity: sensor.solar_monthly_generation_records_lifetime
+        primary: '{{ "%.2f" | format(state_attr(''sensor.solar_monthly_generation_records_lifetime'',''solar_generated_kwh'')
+          | float(0)) }} kWh'
+        secondary: Lifetime {{ '\n' }}{{ state_attr('sensor.solar_monthly_generation_records_lifetime','solar_generated_month')
+          }}
+        multiline_secondary: true
+        icon: mdi:solar-power
+        icon_color: amber
+        card_mod:
+          style: 'mushroom-state-item .primary { color: #f9c74f; font-weight: 700;
+            }
+
+'
+        tap_action:
+          action: more-info
+  - type: grid
+    column_span: 3
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Longer Range
+      subtitle: Monthly rollups
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Monthly Solar / Home / Grid, 12 Months
+        show_states: false
+      graph_span: 365d
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#f9c74f"
+        - "#f94144"
+        - "#277da1"
+        - "#4d908e"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            datetimeFormatter:
+              month: MMM yyyy
+              year: yyyy
+      all_series_config:
+        stroke_width: 3
+        type: column
+        float_precision: 2
+      series:
+      - entity: sensor.solar_generated_monthly
+        name: Solar
+        color: "#f9c74f"
+        group_by:
+          func: last
+          duration: 1mo
+      - entity: sensor.home_load_no_ev_monthly
+        name: Home No EV
+        color: "#f94144"
+        group_by:
+          func: last
+          duration: 1mo
+      - entity: sensor.grid_import_monthly
+        name: Grid Import
+        color: "#277da1"
+        group_by:
+          func: last
+          duration: 1mo
+      - entity: sensor.grid_export_total_monthly
+        name: Grid Export
+        color: "#4d908e"
+        group_by:
+          func: last
+          duration: 1mo
+  - type: grid
+    column_span: 3
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Export and Value
+      subtitle: Monthly export source and lifetime value
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Monthly Export Source, 12 Months
+        show_states: false
+      graph_span: 365d
+      stacked: true
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#f9c74f"
+        - "#43aa8b"
+        - "#4d908e"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            show: true
+            rotate: -30
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            hideOverlappingLabels: true
+            trim: true
+            datetimeFormatter:
+              month: MMM yyyy
+              year: yyyy
+      all_series_config:
+        type: column
+        float_precision: 2
+      series:
+      - entity: sensor.grid_export_solar_monthly
+        name: Solar Export
+        color: "#f9c74f"
+        group_by:
+          func: last
+          duration: 1mo
+      - entity: sensor.grid_export_battery_monthly
+        name: Battery Export
+        color: "#4d908e"
+        group_by:
+          func: last
+          duration: 1mo
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Solar Payback Trajectory, 3 Years
+        show_states: true
+      graph_span: 1095d
+      apex_config:
+        chart:
+          height: 340px
+        colors:
+        - "#90be6d"
+        - "#f3722c"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 3
+          labels:
+            show: true
+            rotate: 0
+            minHeight: 56
+            maxHeight: 80
+            offsetY: 10
+            datetimeUTC: false
+            hideOverlappingLabels: false
+            trim: false
+            format: yyyy
+            datetimeFormatter:
+              year: yyyy
+      all_series_config:
+        stroke_width: 3
+        type: line
+        float_precision: 2
+      series:
+      - entity: sensor.solar_savings_lifetime
+        name: Solar Savings
+        color: "#90be6d"
+        yaxis_id: savings
+        group_by:
+          func: last
+          duration: 30d
+      - entity: sensor.solar_breakeven_remaining
+        name: Solar Breakeven Remaining
+        color: "#f3722c"
+        yaxis_id: remaining
+        group_by:
+          func: last
+          duration: 30d
+      yaxis:
+      - id: savings
+        min: 0
+        decimals: 0
+      - id: remaining
+        opposite: true
+        min: 0
+        decimals: 0
+- title: Solar ROI
+  path: solar-roi
+  icon: mdi:solar-power
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Billing
+      subtitle: Current cost, savings, and billing-cycle energy
+    - type: horizontal-stack
+      grid_options:
+        columns: full
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.billing_cost_actual_total
+        tap_action:
+          action: more-info
+        primary: Actual Bill
+        secondary: ${{ "%.2f" | format(states('sensor.billing_cost_actual_total')
+          | float(0)) }}
+        icon: mdi:receipt-text
+        icon_color: red
+      - type: custom:mushroom-template-card
+        entity: sensor.billing_cost_without_solar_total
+        tap_action:
+          action: more-info
+        primary: Without Solar
+        secondary: ${{ "%.2f" | format(states('sensor.billing_cost_without_solar_total')
+          | float(0)) }}
+        icon: mdi:flash-alert
+        icon_color: orange
+      - type: custom:mushroom-template-card
+        entity: sensor.billing_solar_savings_total
+        tap_action:
+          action: more-info
+        primary: Savings
+        secondary: ${{ "%.2f" | format(states('sensor.billing_solar_savings_total')
+          | float(0)) }}
+        icon: mdi:cash-plus
+        icon_color: green
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_actual_projected
+        tap_action:
+          action: more-info
+        name: Projected Bill
+        icon: mdi:cash-clock
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_without_solar_projected
+        tap_action:
+          action: more-info
+        name: No Solar Projected
+        icon: mdi:flash-alert
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_solar_savings_projected
+        tap_action:
+          action: more-info
+        name: Savings Projected
+        icon: mdi:cash-plus
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_billing_cycle_progress_percent
+        tap_action:
+          action: more-info
+        name: Cycle Progress
+        icon: mdi:chart-donut
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_projected_vs_current_delta
+        tap_action:
+          action: more-info
+        name: Bill Remaining
+        icon: mdi:cash-clock
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_projected_daily_cost_remaining
+        tap_action:
+          action: more-info
+        name: Daily Remaining
+        icon: mdi:calendar-clock
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_forecast_confidence
+        tap_action:
+          action: more-info
+        name: Forecast Confidence
+        icon: mdi:shield-check
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_forecast_status
+        tap_action:
+          action: more-info
+        name: Billing Status
+        icon: mdi:cash-check
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 3
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_billing
+        tap_action:
+          action: more-info
+        name: Solar Generated
+        icon: mdi:solar-power
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_billing
+        tap_action:
+          action: more-info
+        name: Home Load
+        icon: mdi:home-lightning-bolt
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_no_ev_billing
+        tap_action:
+          action: more-info
+        name: Home No EV
+        icon: mdi:home-remove
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_import_billing
+        tap_action:
+          action: more-info
+        name: Grid Import
+        icon: mdi:transmission-tower-import
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_total_billing
+        tap_action:
+          action: more-info
+        name: Grid Export
+        icon: mdi:transmission-tower-export
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_net_billing
+        tap_action:
+          action: more-info
+        name: Net Grid
+        icon: mdi:transmission-tower
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Payback
+      subtitle: Breakeven progress and projection
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.solar_breakeven_progress
+        tap_action:
+          action: more-info
+        icon: mdi:chart-arc
+        icon_color: green
+        content: "{{ states('sensor.solar_breakeven_progress') }}% paid back"
+      - type: template
+        entity: sensor.solar_breakeven_years_remaining
+        tap_action:
+          action: more-info
+        icon: mdi:calendar-clock
+        icon_color: blue
+        content: "{{ states('sensor.solar_breakeven_years_remaining') }} yrs left"
+      - type: template
+        entity: sensor.solar_breakeven_date
+        tap_action:
+          action: more-info
+        icon: mdi:calendar-check
+        icon_color: green
+        content: "{{ states('sensor.solar_breakeven_date') }}"
+    - type: gauge
+      grid_options:
+        columns: 6
+      entity: sensor.solar_breakeven_progress
+      name: Solar Payback Progress
+      min: 0
+      max: 100
+      severity:
+        red: 0
+        yellow: 35
+        green: 75
+    - type: grid
+      grid_options:
+        columns: 6
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_savings_lifetime
+        tap_action:
+          action: more-info
+        name: Lifetime Savings
+        icon: mdi:cash-plus
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_breakeven_remaining
+        tap_action:
+          action: more-info
+        name: Remaining
+        icon: mdi:cash-clock
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_savings_average_monthly
+        tap_action:
+          action: more-info
+        name: Avg Monthly
+        icon: mdi:calendar-month
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_breakeven_months_remaining
+        tap_action:
+          action: more-info
+        name: Months Left
+        icon: mdi:calendar-clock
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_breakeven_years_remaining
+        tap_action:
+          action: more-info
+        name: Years Left
+        icon: mdi:calendar-range
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_breakeven_date
+        tap_action:
+          action: more-info
+        name: Breakeven Date
+        icon: mdi:calendar-check
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Current Pace
+      subtitle: Payback if this billing-cycle savings pace continues
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_savings_monthly_projected
+        tap_action:
+          action: more-info
+        name: Projected Monthly Savings
+        icon: mdi:cash-fast
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_savings_projected_vs_average
+        tap_action:
+          action: more-info
+        name: Vs Avg Savings
+        icon: mdi:chart-line
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_breakeven_years_remaining_current_pace
+        tap_action:
+          action: more-info
+        name: Current Pace Years
+        icon: mdi:calendar-range
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_breakeven_date_current_pace
+        tap_action:
+          action: more-info
+        name: Current Pace Date
+        icon: mdi:calendar-check
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Monthly Energy
+      subtitle: This month's generation, use, and grid balance
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_monthly
+        tap_action:
+          action: more-info
+        name: Solar Generated
+        icon: mdi:solar-power
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_no_ev_monthly
+        tap_action:
+          action: more-info
+        name: Home No EV
+        icon: mdi:home-remove
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_import_monthly
+        tap_action:
+          action: more-info
+        name: Grid Import
+        icon: mdi:transmission-tower-import
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_total_monthly
+        tap_action:
+          action: more-info
+        name: Grid Export
+        icon: mdi:transmission-tower-export
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_solar_monthly
+        tap_action:
+          action: more-info
+        name: Solar Export
+        icon: mdi:solar-power
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_battery_monthly
+        tap_action:
+          action: more-info
+        name: Battery Export
+        icon: mdi:battery-arrow-down
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_net_usage_monthly
+        tap_action:
+          action: more-info
+        name: Net Grid
+        icon: mdi:transmission-tower
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Month-End Projection
+      subtitle: Current month pace carried through month end
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_monthly_projected
+        tap_action:
+          action: more-info
+        name: Solar Projected
+        icon: mdi:solar-power
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_monthly_forecast_adjusted
+        tap_action:
+          action: more-info
+        name: Solar Forecast Adj
+        icon: mdi:weather-partly-cloudy
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_no_ev_monthly_projected
+        tap_action:
+          action: more-info
+        name: Home Projected
+        icon: mdi:home-remove
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_import_monthly_projected
+        tap_action:
+          action: more-info
+        name: Import Projected
+        icon: mdi:transmission-tower-import
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_monthly_projected
+        tap_action:
+          action: more-info
+        name: Export Projected
+        icon: mdi:transmission-tower-export
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_net_usage_monthly_projected
+        tap_action:
+          action: more-info
+        name: Net Grid Projected
+        icon: mdi:transmission-tower
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_monthly_projected
+        tap_action:
+          action: more-info
+        name: EV Projected
+        icon: mdi:ev-station
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_monthly_forecast_adjustment
+        tap_action:
+          action: more-info
+        name: Solar Forecast Delta
+        icon: mdi:chart-bell-curve
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Lifetime Solar
+      subtitle: Cumulative generation, use, and exports
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_lifetime
+        tap_action:
+          action: more-info
+        name: Solar Generated
+        icon: mdi:solar-power
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_self_consumption_lifetime
+        tap_action:
+          action: more-info
+        name: Self Consumption
+        icon: mdi:home-lightning-bolt
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_import_lifetime
+        tap_action:
+          action: more-info
+        name: Grid Import
+        icon: mdi:transmission-tower-import
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_total_lifetime
+        tap_action:
+          action: more-info
+        name: Grid Export
+        icon: mdi:transmission-tower-export
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_solar_lifetime
+        tap_action:
+          action: more-info
+        name: Solar Export
+        icon: mdi:solar-power
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_battery_lifetime
+        tap_action:
+          action: more-info
+        name: Battery Export
+        icon: mdi:battery-arrow-down
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_no_ev_lifetime
+        tap_action:
+          action: more-info
+        name: Home No EV
+        icon: mdi:home-remove
+- title: EV
+  path: ev
+  icon: mdi:car-electric
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: EV Charging
+      subtitle: Battery, charging state, and source split
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.ev_battery_percent
+        tap_action:
+          action: more-info
+        icon: mdi:battery
+        icon_color: green
+        content: "{{ states('sensor.ev_battery_percent') }}%"
+      - type: template
+        entity: sensor.ev_charging_state
+        tap_action:
+          action: more-info
+        icon: mdi:ev-plug-type2
+        icon_color: purple
+        content: "{{ states('sensor.ev_charging_state') | replace('_', ' ') | title
+          }}"
+      - type: template
+        entity: sensor.ev_charge_current
+        tap_action:
+          action: more-info
+        icon: mdi:current-ac
+        icon_color: purple
+        content: '{{ "%.0f" | format(states(''sensor.ev_charge_current'') | float(0))
+          }} A'
+      - type: template
+        entity: binary_sensor.ev_plugged_in
+        tap_action:
+          action: more-info
+        icon: mdi:power-plug
+        icon_color: "{{ iif(is_state('binary_sensor.ev_plugged_in','on'), 'green',
+          'grey') }}"
+        content: "{{ iif(is_state('binary_sensor.ev_plugged_in','on'), 'Plugged In',
+          'Unplugged') }}"
+      - type: template
+        entity: sensor.ev_range
+        tap_action:
+          action: more-info
+        icon: mdi:map-marker-distance
+        icon_color: purple
+        content: "{{ states('sensor.ev_range') }} mi"
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_battery_percent
+        name: Battery
+        icon: mdi:battery
+        variables:
+          metric_color: "#43aa8b"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_range
+        name: Range
+        icon: mdi:map-marker-distance
+        variables:
+          metric_color: "#9b5de5"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_stored_energy
+        name: Stored Energy
+        icon: mdi:battery-high
+        variables:
+          metric_color: "#43aa8b"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_odometer
+        name: Odometer
+        icon: mdi:counter
+        variables:
+          metric_color: "#9b5de5"
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Charging Now
+      subtitle: Power, target, and time to full
+    - type: gauge
+      grid_options:
+        columns: full
+      entity: sensor.ev_charging_power
+      name: Charging Power
+      min: 0
+      max: 12
+      needle: true
+      severity:
+        green: 0
+        yellow: 5
+        red: 9
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charge_limit
+        name: Charge Limit
+        icon: mdi:battery-sync
+        variables:
+          metric_color: "#43aa8b"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_time_to_full
+        name: Time To Full
+        icon: mdi:timer-outline
+        variables:
+          metric_color: "#43aa8b"
+        custom_fields:
+          value: |-
+            [[[
+              const raw = entity?.state;
+              if (!raw || raw === "unknown" || raw === "unavailable") return "n/a";
+
+              const target = new Date(raw);
+              if (Number.isNaN(target.getTime())) return String(raw).replaceAll("_", " ");
+
+              const diffMinutes = Math.max(0, Math.round((target.getTime() - Date.now()) / 60000));
+              const hours = Math.floor(diffMinutes / 60);
+              const minutes = diffMinutes % 60;
+
+              if (diffMinutes <= 1) return "now";
+              if (hours === 0) return `in ${minutes}m`;
+              return minutes > 0 ? `in ${hours}h ${minutes}m` : `in ${hours}h`;
+            ]]]
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_energy_to_target
+        name: To Target
+        icon: mdi:battery-arrow-up
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_power
+        name: Charger Power
+        icon: mdi:ev-station
+        variables:
+          metric_color: "#9b5de5"
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Charging Totals
+      subtitle: Today, billing cycle, month, and year
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_daily
+        name: Today
+        icon: mdi:calendar-today
+        variables:
+          metric_color: "#9b5de5"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_billing
+        name: Billing Cycle
+        icon: mdi:calendar-sync
+        variables:
+          metric_color: "#9b5de5"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_monthly
+        name: This Month
+        icon: mdi:calendar-month
+        variables:
+          metric_color: "#9b5de5"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_yearly
+        name: This Year
+        icon: mdi:calendar
+        variables:
+          metric_color: "#9b5de5"
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Charging Source
+      subtitle: Solar-backed charging compared with grid charging
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.ev_solar_backed_percent_today
+        tap_action:
+          action: more-info
+        icon: mdi:solar-power
+        icon_color: amber
+        content: Solar {{ states('sensor.ev_solar_backed_percent_today') }}%
+      - type: template
+        entity: sensor.ev_grid_percent_today
+        tap_action:
+          action: more-info
+        icon: mdi:transmission-tower
+        icon_color: blue
+        content: Grid {{ states('sensor.ev_grid_percent_today') }}%
+      - type: template
+        entity: sensor.ev_estimated_miles_today
+        tap_action:
+          action: more-info
+        icon: mdi:map-marker-path
+        icon_color: purple
+        content: "{{ states('sensor.ev_estimated_miles_today') }} mi today"
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Charging Source, 30d
+        show_states: true
+      graph_span: 30d
+      apex_config:
+        chart:
+          height: 300px
+        colors:
+        - "#f9c74f"
+        - "#277da1"
+        - "#9b5de5"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            rotate: -30
+            minHeight: 56
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      series:
+      - entity: sensor.ev_solar_backed_daily
+        name: Solar-Backed
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.ev_grid_daily
+        name: Grid
+        type: column
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.ev_charging_daily
+        name: Total
+        type: line
+        group_by:
+          func: last
+          duration: 1d
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Live Charging
+      subtitle: Charging power and battery state of charge
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Charging Power and Battery, 24h
+        show_states: true
+      graph_span: 24h
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#9b5de5"
+        - "#43aa8b"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            datetimeUTC: false
+            datetimeFormatter:
+              hour: HH:mm
+              day: MMM d
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.ev_charging_power
+        name: Charging Power
+        type: line
+        yaxis_id: power
+        group_by:
+          func: avg
+          duration: 5min
+      - entity: sensor.ev_battery_percent
+        name: Battery %
+        type: line
+        yaxis_id: percent
+        group_by:
+          func: avg
+          duration: 15min
+      yaxis:
+      - id: power
+        min: 0
+        max: 12
+        decimals: 2
+      - id: percent
+        opposite: true
+        min: 0
+        max: 100
+        decimals: 0
+- title: Battery
+  path: battery
+  icon: mdi:battery-heart-variant
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Battery
+      subtitle: Live status, runtime, and charge source
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.home_battery_percent
+        tap_action:
+          action: more-info
+        icon: mdi:battery
+        icon_color: green
+        content: '{{ "%.0f" | format(states(''sensor.home_battery_percent'') | float(0))
+          }}%'
+      - type: template
+        entity: sensor.home_battery_power
+        tap_action:
+          action: more-info
+        icon: "{% set p = states('sensor.home_battery_power') | float(0) %} {{ 'mdi:battery-arrow-up'
+          if p < -0.1 else 'mdi:battery-arrow-down' if p > 0.1 else 'mdi:battery'
+          }}"
+        icon_color: "{% set p = states('sensor.home_battery_power') | float(0) %}
+          {{ 'green' if p < -0.1 else 'teal' if p > 0.1 else 'grey' }}"
+        content: '{{ "%.2f" | format(states(''sensor.home_battery_power'') | float(0))
+          }} kW'
+      - type: template
+        entity: sensor.grid_status
+        tap_action:
+          action: more-info
+        icon: mdi:transmission-tower
+        icon_color: blue
+        content: "{{ states('sensor.grid_status') }}"
+      - type: template
+        entity: binary_sensor.storm_watch_active
+        tap_action:
+          action: more-info
+        icon: mdi:weather-lightning-rainy
+        icon_color: amber
+        content: Storm {{ iif(is_state('binary_sensor.storm_watch_active','on'),'On','Off')
+          }}
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:mushroom-template-card
+        entity: sensor.battery_runtime_to_backup_reserve_hours
+        primary: Backup Reserve
+        secondary: |-
+          {% set raw = states('sensor.battery_runtime_to_backup_reserve_hours') %} {% set eta = states('sensor.battery_runtime_to_backup_reserve_eta') %} {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set mins = (raw | float(0) * 60) | round(0) | int %}
+            {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+          {% elif states('sensor.home_battery_power') | float(0) <= 0.1 %}
+            Not discharging
+          {% else %}
+            Reserve met
+          {% endif %}
+        icon: mdi:battery-lock
+        icon_color: green
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.battery_runtime_to_20_percent_hours
+        primary: To 20%
+        secondary: |-
+          {% set raw = states('sensor.battery_runtime_to_20_percent_hours') %} {% set eta = states('sensor.battery_runtime_to_20_percent_eta') %} {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set mins = (raw | float(0) * 60) | round(0) | int %}
+            {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+          {% elif states('sensor.home_battery_power') | float(0) <= 0.1 %}
+            Not discharging
+          {% else %}
+            At or below 20%
+          {% endif %}
+        icon: mdi:battery-20
+        icon_color: amber
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.battery_runtime_to_full_hours
+        primary: To 100%
+        secondary: |-
+          {% set raw = states('sensor.battery_runtime_to_full_hours') %} {% set eta = states('sensor.battery_runtime_to_full_eta') %} {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set mins = (raw | float(0) * 60) | round(0) | int %}
+            {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+          {% elif states('sensor.home_battery_power') | float(0) >= -0.1 %}
+            Not charging
+          {% else %}
+            Full
+          {% endif %}
+        icon: mdi:battery-charging-high
+        icon_color: green
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.battery_runtime_to_empty_hours
+        primary: To Empty
+        secondary: |-
+          {% set raw = states('sensor.battery_runtime_to_empty_hours') %} {% set eta = states('sensor.battery_runtime_to_empty_eta') %} {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {% set mins = (raw | float(0) * 60) | round(0) | int %}
+            {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+          {% else %}
+            Not discharging
+          {% endif %}
+        icon: mdi:battery-alert
+        icon_color: red
+        layout: vertical
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_charged_daily
+        name: Charged Today
+        icon: mdi:battery-plus
+        variables:
+          metric_color: "#43aa8b"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_discharged_daily
+        name: Discharged Today
+        icon: mdi:battery-minus
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_charged_from_solar_daily
+        name: Solar Charge
+        icon: mdi:solar-power
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_charged_from_grid_daily
+        name: Grid Charge
+        icon: mdi:transmission-tower-import
+        variables:
+          metric_color: "#277da1"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_charged_monthly
+        name: Charged Month
+        icon: mdi:calendar-month
+        variables:
+          metric_color: "#43aa8b"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_discharged_monthly
+        name: Discharged Month
+        icon: mdi:calendar-month-outline
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_charged_yearly
+        name: Charged Year
+        icon: mdi:calendar
+        variables:
+          metric_color: "#43aa8b"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_discharged_yearly
+        name: Discharged Year
+        icon: mdi:calendar-outline
+        variables:
+          metric_color: "#4d908e"
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Charge Source
+      subtitle: Battery charging split for today
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.battery_charged_from_solar_daily
+        tap_action:
+          action: more-info
+        icon: mdi:solar-power
+        icon_color: amber
+        content: Solar {{ "%.0f" | format((states('sensor.battery_charged_from_solar_daily')
+          | float(0)) / (states('sensor.battery_charged_daily') | float(0)) * 100
+          if (states('sensor.battery_charged_daily') | float(0)) > 0 else 0) }}%
+      - type: template
+        entity: sensor.battery_charged_from_grid_daily
+        tap_action:
+          action: more-info
+        icon: mdi:transmission-tower
+        icon_color: blue
+        content: Grid {{ "%.0f" | format((states('sensor.battery_charged_from_grid_daily')
+          | float(0)) / (states('sensor.battery_charged_daily') | float(0)) * 100
+          if (states('sensor.battery_charged_daily') | float(0)) > 0 else 0) }}%
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Battery Charge Source, 30d
+        show_states: true
+      graph_span: 30d
+      stacked: true
+      apex_config:
+        chart:
+          height: 300px
+        colors:
+        - "#f9c74f"
+        - "#277da1"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 4
+          labels:
+            rotate: -30
+            minHeight: 56
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        type: column
+        float_precision: 2
+      series:
+      - entity: sensor.battery_charged_from_solar_daily
+        name: From Solar
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.battery_charged_from_grid_daily
+        name: From Grid
+        group_by:
+          func: last
+          duration: 1d
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: VPP
+      subtitle: Event entry, value, and battery payoff
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.vpp_earnings_lifetime
+        icon: mdi:cash
+        icon_color: green
+        content: Earned ${{ "%.2f" | format(states('sensor.vpp_earnings_lifetime')
+          | float(0)) }}
+      - type: template
+        entity: input_number.vpp_rebate_amount
+        icon: mdi:gift
+        icon_color: amber
+        content: Rebate ${{ "%.0f" | format(states('input_number.vpp_rebate_amount')
+          | float(0)) }}
+      - type: template
+        entity: sensor.vpp_total_value
+        icon: mdi:cash-multiple
+        icon_color: green
+        content: Total ${{ "%.2f" | format(states('sensor.vpp_total_value') | float(0))
+          }}
+      - type: template
+        entity: sensor.battery_vpp_progress
+        icon: mdi:chart-arc
+        icon_color: green
+        content: "{% set progress = states('sensor.battery_vpp_progress') %} {{ progress
+          ~ '% paid back' if progress not in ['unknown', 'unavailable', 'none', 'None',
+          ''] else 'Setup needed' }}"
+    - type: gauge
+      grid_options:
+        columns: full
+      entity: sensor.battery_vpp_progress
+      name: Battery VPP Payback Progress
+      min: 0
+      max: 100
+      severity:
+        red: 0
+        yellow: 35
+        green: 75
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.vpp_earnings_lifetime
+        name: Earnings
+        icon: mdi:cash
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.vpp_total_value
+        name: Total Value
+        icon: mdi:cash-multiple
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_vpp_net_cost
+        name: Battery Net Cost
+        icon: mdi:battery-heart-variant
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_vpp_remaining
+        name: Remaining
+        icon: mdi:progress-clock
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.vpp_earnings_average_monthly
+        name: Avg Monthly
+        icon: mdi:chart-line
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.battery_vpp_years_remaining
+        name: Years Left
+        icon: mdi:calendar-clock
+        variables:
+          metric_color: "#577590"
+    - type: horizontal-stack
+      grid_options:
+        columns: full
+      cards:
+      - type: custom:mushroom-template-card
+        entity: input_number.vpp_last_event_energy
+        primary: Last Event
+        secondary: '{{ "%.2f" | format(states(''input_number.vpp_last_event_energy'')
+          | float(0)) }} kWh'
+        icon: mdi:flash
+        icon_color: amber
+        layout: vertical
+      - type: custom:mushroom-template-card
+        entity: sensor.vpp_last_event_earnings
+        primary: Event Value
+        secondary: ${{ "%.2f" | format(states('sensor.vpp_last_event_earnings') |
+          float(0)) }}
+        icon: mdi:cash-fast
+        icon_color: green
+        layout: vertical
+    - type: custom:mushroom-template-card
+      grid_options:
+        columns: full
+      primary: Apply VPP Event
+      secondary: Add {{ "%.2f" | format(states('input_number.vpp_last_event_energy')
+        | float(0)) }} kWh to lifetime
+      icon: mdi:check-circle
+      icon_color: green
+      tap_action:
+        action: call-service
+        service: script.apply_vpp_event
+        confirmation:
+          text: Add this VPP event to lifetime totals?
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Battery Power and State of Charge, 24h
+        show_states: true
+      graph_span: 24h
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#43aa8b"
+        - "#90be6d"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            datetimeUTC: false
+            datetimeFormatter:
+              hour: HH:mm
+              day: MMM d
+      all_series_config:
+        stroke_width: 3
+        float_precision: 2
+      series:
+      - entity: sensor.home_battery_power
+        name: Battery Power
+        type: line
+        yaxis_id: power
+        group_by:
+          func: avg
+          duration: 5min
+      - entity: sensor.home_battery_percent
+        name: Battery %
+        type: line
+        yaxis_id: percent
+        group_by:
+          func: avg
+          duration: 15min
+      yaxis:
+      - id: power
+        min: -6
+        max: 6
+        decimals: 2
+      - id: percent
+        opposite: true
+        min: 0
+        max: 100
+        decimals: 0
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Battery Monthly Energy, 12 Months
+        show_states: true
+      graph_span: 365d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#43aa8b"
+        - "#4d908e"
+        - "#f9c74f"
+        - "#277da1"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            datetimeUTC: false
+            datetimeFormatter:
+              month: MMM yyyy
+              year: yyyy
+      all_series_config:
+        stroke_width: 3
+        type: line
+        float_precision: 2
+      series:
+      - entity: sensor.battery_charged_monthly
+        name: Charged
+        group_by:
+          func: last
+          duration: 1mo
+      - entity: sensor.battery_discharged_monthly
+        name: Discharged
+        group_by:
+          func: last
+          duration: 1mo
+      - entity: sensor.battery_charged_from_solar_monthly
+        name: From Solar
+        group_by:
+          func: last
+          duration: 1mo
+      - entity: sensor.battery_charged_from_grid_monthly
+        name: From Grid
+        group_by:
+          func: last
+          duration: 1mo
+- title: Billing
+  path: billing
+  icon: mdi:cash
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Billing
+      subtitle: Current bill, credits, and billing-cycle energy
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 3
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_actual_total
+        name: Actual Bill
+        icon: mdi:receipt-text
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_without_solar_total
+        name: Without Solar
+        icon: mdi:flash-alert
+        variables:
+          metric_color: "#f3722c"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_solar_savings_total
+        name: Savings
+        icon: mdi:cash-plus
+        variables:
+          metric_color: "#90be6d"
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_actual_projected
+        name: Projected Bill
+        icon: mdi:cash-clock
+        variables:
+          metric_color: "#f3722c"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_without_solar_projected
+        name: No Solar Projected
+        icon: mdi:flash-alert
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_solar_savings_projected
+        name: Savings Projected
+        icon: mdi:cash-plus
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_billing_cycle_progress_percent
+        name: Cycle Progress
+        icon: mdi:chart-donut
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_projected_daily_cost_remaining
+        name: Daily Remaining
+        icon: mdi:calendar-clock
+        variables:
+          metric_color: "#f3722c"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_forecast_confidence
+        name: Forecast Confidence
+        icon: mdi:shield-check
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_forecast_status
+        name: Billing Status
+        icon: mdi:cash-check
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_billing_cycle_days_remaining
+        name: Days Left
+        icon: mdi:calendar-end
+        variables:
+          metric_color: "#577590"
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Credit Bank
+      subtitle: Daily, billing-cycle, and annual credits
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 3
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.daily_net_export_credit
+        name: Daily Credit
+        icon: mdi:calendar-today
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_net_export_credit
+        name: Billing Credit
+        icon: mdi:calendar-sync
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.annual_net_export_credit
+        name: Annual Bank
+        icon: mdi:battery-medium
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.daily_net_export_credit_value
+        name: Daily Credit Value
+        icon: mdi:cash-plus
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_net_export_credit_value
+        name: Billing Credit Value
+        icon: mdi:cash-plus
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.annual_net_export_credit_value
+        name: Annual Bank Value
+        icon: mdi:cash-plus
+        variables:
+          metric_color: "#90be6d"
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 3
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_billing
+        name: Solar Generated
+        icon: mdi:solar-power
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_billing
+        name: Home Load
+        icon: mdi:home-lightning-bolt
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_no_ev_billing
+        name: Home No EV
+        icon: mdi:home-remove
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_import_billing
+        name: Grid Import
+        icon: mdi:transmission-tower-import
+        variables:
+          metric_color: "#277da1"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_total_billing
+        name: Grid Export
+        icon: mdi:transmission-tower-export
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_net_billing
+        name: Net Grid
+        icon: mdi:transmission-tower
+        variables:
+          metric_color: "#277da1"
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Rates
+      subtitle: Inputs used by billing and EV cost math
+    - type: entities
+      grid_options:
+        columns: full
+      title: Billing Inputs
+      show_header_toggle: false
+      entities:
+      - entity: input_number.billing_tier_1_limit_kwh
+        name: Tier 1 Limit
+      - entity: input_number.billing_tier_1_rate
+        name: Tier 1 Rate
+      - entity: input_number.billing_tier_2_rate
+        name: Tier 2 Rate
+      - entity: input_number.billing_program_charge_rate
+        name: Program Charge
+      - entity: input_number.billing_power_cost_adjustment_rate
+        name: Power Cost Adjustment
+      - entity: input_number.billing_basic_charge
+        name: Basic Charge
+      - entity: input_number.billing_tax_rate
+        name: Tax Rate
+      - entity: sensor.billing_marginal_electricity_rate
+        name: Marginal Electricity Rate
+      - entity: sensor.billing_effective_total_rate
+        name: Effective Total Rate
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Billing Cost vs Savings, 30d
+        show_states: true
+      graph_span: 30d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#f94144"
+        - "#f9c74f"
+        - "#90be6d"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        type: line
+        float_precision: 2
+      series:
+      - entity: sensor.billing_cost_actual_total
+        name: Actual Bill
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_cost_without_solar_total
+        name: Without Solar
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_solar_savings_total
+        name: Solar Savings
+        group_by:
+          func: last
+          duration: 1d
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Annual Credit Bank, 12 Months
+        show_states: true
+      graph_span: 365d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#4d908e"
+        - "#90be6d"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            datetimeUTC: false
+            datetimeFormatter:
+              month: MMM yyyy
+              year: yyyy
+      all_series_config:
+        stroke_width: 3
+        type: line
+        float_precision: 2
+      series:
+      - entity: sensor.annual_net_export_credit
+        name: Credit Bank
+        group_by:
+          func: last
+          duration: 7d
+      - entity: sensor.annual_net_export_credit_value
+        name: Credit Value
+        group_by:
+          func: last
+          duration: 7d
+- title: Forecasting
+  path: forecasting
+  icon: mdi:crystal-ball
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 3
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Forecasting
+      subtitle: Billing cycle, month-end energy, and forecast health
+    - type: custom:mushroom-chips-card
+      grid_options:
+        columns: full
+      alignment: justify
+      chips:
+      - type: template
+        entity: sensor.energy_forecast_confidence
+        icon: mdi:shield-check
+        icon_color: green
+        content: Confidence {{ states('sensor.energy_forecast_confidence') }}
+      - type: template
+        entity: sensor.billing_forecast_status
+        icon: mdi:cash-check
+        icon_color: blue
+        content: Billing {{ states('sensor.billing_forecast_status') }}
+      - type: template
+        entity: sensor.monthly_forecast_status
+        icon: mdi:calendar-check
+        icon_color: green
+        content: Month {{ states('sensor.monthly_forecast_status') }}
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Billing Forecast
+      subtitle: Current cycle totals and projected bill
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_actual_total
+        name: Current Bill
+        icon: mdi:receipt-text
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_actual_projected
+        name: Projected Bill
+        icon: mdi:cash-clock
+        variables:
+          metric_color: "#f3722c"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_remaining_projected
+        name: Remaining
+        icon: mdi:calendar-clock
+        variables:
+          metric_color: "#f3722c"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_projected_daily_cost_remaining
+        name: Daily Remaining
+        icon: mdi:calendar-clock
+        variables:
+          metric_color: "#f3722c"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_cost_without_solar_projected
+        name: Without Solar
+        icon: mdi:flash-alert
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_solar_savings_projected
+        name: Solar Savings
+        icon: mdi:cash-plus
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_grid_import_projected
+        name: Grid Import
+        icon: mdi:transmission-tower-import
+        variables:
+          metric_color: "#277da1"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.billing_net_grid_projected
+        name: Net Grid
+        icon: mdi:transmission-tower
+        variables:
+          metric_color: "#277da1"
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Billing Forecast Trend, 30d
+        show_states: true
+      graph_span: 30d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#f94144"
+        - "#f3722c"
+        - "#90be6d"
+        - "#577590"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        type: line
+        float_precision: 2
+      series:
+      - entity: sensor.billing_cost_actual_total
+        name: Actual Bill
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_cost_actual_projected
+        name: Projected Bill
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_solar_savings_projected
+        name: Projected Savings
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.billing_cost_without_solar_projected
+        name: Without Solar
+        group_by:
+          func: last
+          duration: 1d
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Forecast Health
+      subtitle: Reset timing and confidence guardrails
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_billing_cycle_day
+        name: Cycle Day
+        icon: mdi:calendar-today
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_billing_cycle_days_remaining
+        name: Days Left
+        icon: mdi:calendar-end
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_billing_cycle_progress_percent
+        name: Cycle Progress
+        icon: mdi:chart-donut
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_month_days_remaining
+        name: Month Days Left
+        icon: mdi:calendar-end
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_month_progress_percent
+        name: Month Progress
+        icon: mdi:chart-donut
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.energy_year_progress_percent
+        name: Year Progress
+        icon: mdi:chart-donut
+        variables:
+          metric_color: "#577590"
+    - type: entities
+      grid_options:
+        columns: full
+      title: Reset Setup
+      show_header_toggle: false
+      entities:
+      - entity: input_datetime.energy_billing_cycle_start
+        name: Billing Cycle Start
+      - entity: input_number.energy_billing_cycle_length_days
+        name: Billing Cycle Length
+      - entity: input_number.energy_forecast_min_elapsed_days
+        name: Forecast Minimum Days
+      - entity: input_datetime.solar_install_date
+        name: Solar Install Date
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Month-End Energy
+      subtitle: Current month pace carried through month end
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 2
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.home_load_no_ev_monthly_projected
+        name: Home Projected
+        icon: mdi:home-remove
+        variables:
+          metric_color: "#f94144"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.ev_charging_monthly_projected
+        name: EV Projected
+        icon: mdi:ev-station
+        variables:
+          metric_color: "#9b5de5"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_import_monthly_projected
+        name: Import Projected
+        icon: mdi:transmission-tower-import
+        variables:
+          metric_color: "#277da1"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_export_monthly_projected
+        name: Export Projected
+        icon: mdi:transmission-tower-export
+        variables:
+          metric_color: "#4d908e"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.grid_net_usage_monthly_projected
+        name: Net Grid Projected
+        icon: mdi:transmission-tower
+        variables:
+          metric_color: "#277da1"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.monthly_forecast_status
+        name: Month Status
+        icon: mdi:calendar-check
+        variables:
+          metric_color: "#577590"
+    - type: custom:mushroom-title-card
+      grid_options:
+        columns: full
+      title: Solar Forecast
+      subtitle: Month-end run rate and forecast-adjusted projection
+    - type: grid
+      grid_options:
+        columns: full
+      columns: 4
+      square: false
+      cards:
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_monthly
+        name: Actual Month
+        icon: mdi:solar-power
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_monthly_projected
+        name: Run Rate
+        icon: mdi:chart-line
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_generated_monthly_forecast_adjusted
+        name: Forecast Adjusted
+        icon: mdi:weather-partly-cloudy
+        variables:
+          metric_color: "#f9c74f"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_monthly_forecast_adjustment
+        name: Forecast Delta
+        icon: mdi:chart-bell-curve
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_savings_monthly_projected
+        name: Savings Pace
+        icon: mdi:cash-fast
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_savings_projected_vs_average
+        name: Vs Avg Savings
+        icon: mdi:chart-line
+        variables:
+          metric_color: "#90be6d"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_month_end_forecast_method
+        name: Method
+        icon: mdi:chart-bell-curve
+        variables:
+          metric_color: "#577590"
+      - type: custom:button-card
+        template: insights_metric_tile
+        entity: sensor.solar_forecast_adjusted_confidence
+        name: Solar Confidence
+        icon: mdi:shield-check
+        variables:
+          metric_color: "#90be6d"
+    - type: custom:apexcharts-card
+      grid_options:
+        columns: full
+      section_mode: true
+      header:
+        show: true
+        title: Solar Month-End Forecast, 30d
+        show_states: true
+      graph_span: 30d
+      apex_config:
+        chart:
+          height: 320px
+        colors:
+        - "#f9c74f"
+        - "#f3722c"
+        - "#43aa8b"
+        legend:
+          show: true
+          position: top
+          horizontalAlign: left
+        stroke:
+          curve: smooth
+        markers:
+          size: 0
+        grid:
+          padding:
+            bottom: 72
+        xaxis:
+          type: datetime
+          tickAmount: 6
+          labels:
+            datetimeUTC: false
+            datetimeFormatter:
+              day: MMM d
+              month: MMM yyyy
+      all_series_config:
+        stroke_width: 3
+        type: line
+        float_precision: 1
+      series:
+      - entity: sensor.solar_generated_monthly
+        name: Actual Month
+        color: "#f9c74f"
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.solar_generated_monthly_projected
+        name: Run Rate
+        color: "#f3722c"
+        stroke_dash: 6
+        group_by:
+          func: last
+          duration: 1d
+      - entity: sensor.solar_generated_monthly_forecast_adjusted
+        name: Forecast Adjusted
+        color: "#43aa8b"
+        group_by:
+          func: last
+          duration: 1d
+- title: Config
+  path: config
+  icon: mdi:cog
+  type: sections
+  max_columns: 2
+  sections:
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      title: Billing Config
+      subtitle: Rates, billing cycle, and forecast timing
+    - type: entities
+      title: Billing Inputs
+      show_header_toggle: false
+      entities:
+      - entity: input_number.billing_tier_1_limit_kwh
+        name: Tier 1 Limit
+      - entity: input_number.billing_tier_1_rate
+        name: Tier 1 Rate
+      - entity: input_number.billing_tier_2_rate
+        name: Tier 2 Rate
+      - entity: input_number.billing_program_charge_rate
+        name: Program Charge
+      - entity: input_number.billing_power_cost_adjustment_rate
+        name: Power Cost Adjustment
+      - entity: input_number.billing_basic_charge
+        name: Basic Charge
+      - entity: input_number.billing_tax_rate
+        name: Tax Rate
+      - entity: input_datetime.energy_billing_cycle_start
+        name: Billing Cycle Start
+      - entity: input_number.energy_billing_cycle_length_days
+        name: Billing Cycle Length
+      - entity: input_number.energy_forecast_min_elapsed_days
+        name: Forecast Minimum Days
+    - type: entities
+      title: Annual True-Up Inputs
+      show_header_toggle: false
+      entities:
+      - entity: input_boolean.annual_trueup_auto_reset_enabled
+        name: Auto Reset Annual Credit Bank
+      - entity: input_number.annual_trueup_reset_month
+        name: Reset Month
+      - entity: input_number.annual_trueup_reset_day
+        name: Reset Day
+      - entity: script.reset_annual_trueup_credit_bank
+        name: Reset Annual Credit Bank Now
+    - type: entities
+      title: Forecast Status
+      show_header_toggle: false
+      entities:
+      - entity: automation.auto_reset_energy_billing_cycle
+        name: Auto Billing Reset
+      - entity: sensor.energy_billing_cycle_day
+        name: Billing Cycle Day
+      - entity: sensor.energy_billing_cycle_days_remaining
+        name: Billing Days Remaining
+      - entity: sensor.energy_month_days_remaining
+        name: Month Days Remaining
+      - entity: sensor.energy_forecast_confidence
+        name: Forecast Confidence
+      - entity: sensor.billing_forecast_status
+        name: Billing Forecast Status
+      - entity: sensor.monthly_forecast_status
+        name: Monthly Forecast Status
+    - type: button
+      name: Reset Billing Cycle
+      icon: mdi:refresh
+      tap_action:
+        action: call-service
+        service: script.reset_billing_cycle
+        confirmation:
+          text: Are you sure you want to reset the billing cycle?
+  - type: grid
+    cards:
+    - type: custom:mushroom-title-card
+      title: Energy + EV Config
+      subtitle: Battery, EV, ROI, and VPP assumptions
+    - type: entities
+      title: Battery + EV Inputs
+      show_header_toggle: false
+      entities:
+      - entity: input_number.home_battery_usable_capacity_kwh
+        name: Home Battery Usable Capacity
+      - entity: input_number.home_battery_backup_reserve_percent
+        name: Home Battery Backup Reserve
+      - entity: input_number.ev_battery_capacity_kwh
+        name: EV Battery Capacity
+      - entity: input_number.ev_miles_per_kwh
+        name: EV Miles per kWh
+      - entity: input_number.gas_car_mpg
+        name: Gas Car MPG
+      - entity: input_number.gas_price_per_gallon
+        name: Gas Price per Gallon
+    - type: entities
+      title: ROI + VPP Inputs
+      show_header_toggle: false
+      entities:
+      - entity: input_datetime.solar_install_date
+        name: Solar Install Date
+      - entity: input_number.solar_system_net_cost
+        name: Solar System Net Cost
+      - entity: input_number.battery_net_cost
+        name: Battery Net Cost
+      - entity: input_number.vpp_rebate_amount
+        name: VPP Rebate Amount
+      - entity: input_number.vpp_rate_per_kwh
+        name: VPP Rate per kWh
+      - entity: input_number.vpp_energy_lifetime
+        name: VPP Energy Lifetime
+      - entity: input_number.vpp_last_event_energy
+        name: VPP Last Event Energy
+    - type: entities
+      title: Key Derived Rates
+      show_header_toggle: false
+      entities:
+      - entity: sensor.billing_marginal_electricity_rate
+        name: Marginal Electricity Rate
+      - entity: sensor.billing_effective_total_rate
+        name: Effective Total Rate
+      - entity: sensor.vpp_earnings_average_monthly
+        name: VPP Avg Monthly

@@ -1,0 +1,862 @@
+template:
+  - trigger:
+      - platform: time
+        at: "00:00:00"
+      - platform: state
+        entity_id:
+          - sensor.home_solar_power
+          - sensor.home_load_power
+          - sensor.home_load_no_ev_power
+          - sensor.grid_net_power
+          - sensor.home_battery_power
+          - sensor.ev_charging_power
+    sensor:
+      - name: Peak Solar Power Daily
+        unique_id: peak_solar_power_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = states('sensor.home_solar_power') | float(0) %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+      - name: Peak Home Load Daily
+        unique_id: peak_home_load_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = states('sensor.home_load_power') | float(0) %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+      - name: Peak Home Load No EV Daily
+        unique_id: peak_home_load_no_ev_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = states('sensor.home_load_no_ev_power') | float(0) %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+      - name: Peak Grid Import Power Daily
+        unique_id: peak_grid_import_power_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = [states('sensor.grid_net_power') | float(0), 0] | max %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+      - name: Peak Grid Export Power Daily
+        unique_id: peak_grid_export_power_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = [0 - (states('sensor.grid_net_power') | float(0)), 0] | max %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+      - name: Peak Battery Charge Power Daily
+        unique_id: peak_battery_charge_power_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = [0 - (states('sensor.home_battery_power') | float(0)), 0] | max %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+      - name: Peak Battery Discharge Power Daily
+        unique_id: peak_battery_discharge_power_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = [states('sensor.home_battery_power') | float(0), 0] | max %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+      - name: Peak EV Charging Power Daily
+        unique_id: peak_ev_charging_power_daily
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = states('sensor.ev_charging_power') | float(0) %}
+          {{ 0 if trigger.platform == 'time' else [this.state | float(0), current] | max }}
+
+  - trigger:
+      - platform: time
+        at: "00:00:05"
+      - platform: state
+        entity_id:
+          - sensor.peak_solar_power_daily
+          - sensor.peak_home_load_daily
+          - sensor.peak_home_load_no_ev_daily
+          - sensor.peak_grid_import_power_daily
+          - sensor.peak_grid_export_power_daily
+          - sensor.peak_battery_charge_power_daily
+          - sensor.peak_battery_discharge_power_daily
+          - sensor.peak_ev_charging_power_daily
+    sensor:
+      - name: Peak Solar Power Monthly
+        unique_id: peak_solar_power_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_solar_power_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_solar_power_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+      - name: Peak Home Load Monthly
+        unique_id: peak_home_load_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_home_load_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_home_load_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+      - name: Peak Home Load No EV Monthly
+        unique_id: peak_home_load_no_ev_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_home_load_no_ev_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+      - name: Peak Grid Import Power Monthly
+        unique_id: peak_grid_import_power_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_grid_import_power_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_grid_import_power_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+      - name: Peak Grid Export Power Monthly
+        unique_id: peak_grid_export_power_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_grid_export_power_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_grid_export_power_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+      - name: Peak Battery Charge Power Monthly
+        unique_id: peak_battery_charge_power_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_battery_charge_power_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_battery_charge_power_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+      - name: Peak Battery Discharge Power Monthly
+        unique_id: peak_battery_discharge_power_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_battery_discharge_power_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_battery_discharge_power_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+      - name: Peak EV Charging Power Monthly
+        unique_id: peak_ev_charging_power_monthly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set period = now().strftime('%Y-%m') %}
+          {% set current = states('sensor.peak_ev_charging_power_daily') | float(0) %}
+          {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+          {{ [previous, current] | max }}
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          peak_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.peak_ev_charging_power_daily') | float(0) %}
+            {% set previous = this.state | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('peak_date', '') }}{% endif %}
+
+  - trigger:
+      - platform: time
+        at: "00:00:10"
+      - platform: state
+        entity_id:
+          - sensor.peak_solar_power_daily
+          - sensor.peak_home_load_daily
+          - sensor.peak_home_load_no_ev_daily
+          - sensor.peak_grid_import_power_daily
+          - sensor.peak_grid_export_power_daily
+          - sensor.peak_battery_charge_power_daily
+          - sensor.peak_battery_discharge_power_daily
+          - sensor.peak_ev_charging_power_daily
+    sensor:
+      - name: Power Records Yearly
+        unique_id: power_records_yearly
+        state: "{{ now().isoformat() }}"
+        attributes:
+          record_period: "{{ now().strftime('%Y') }}"
+          solar_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_solar_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          solar_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_solar_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('solar_date', '') }}{% endif %}
+          home_load_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          home_load_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('home_load_date', '') }}{% endif %}
+          home_load_no_ev_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          home_load_no_ev_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          grid_import_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_grid_import_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          grid_import_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_grid_import_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+          grid_export_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_grid_export_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          grid_export_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_grid_export_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('grid_export_date', '') }}{% endif %}
+          battery_charge_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_battery_charge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_charge_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          battery_charge_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_battery_charge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_charge_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('battery_charge_date', '') }}{% endif %}
+          battery_discharge_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_battery_discharge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_discharge_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          battery_discharge_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_battery_discharge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_discharge_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('battery_discharge_date', '') }}{% endif %}
+          ev_charging_kw: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_ev_charging_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          ev_charging_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.peak_ev_charging_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kw', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('ev_charging_date', '') }}{% endif %}
+
+  - sensor:
+      - name: Peak Solar Power Yearly
+        unique_id: peak_solar_power_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'solar_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'solar_date') }}"
+
+      - name: Peak Home Load Yearly
+        unique_id: peak_home_load_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'home_load_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'home_load_date') }}"
+
+      - name: Peak Home Load No EV Yearly
+        unique_id: peak_home_load_no_ev_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'home_load_no_ev_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'home_load_no_ev_date') }}"
+
+      - name: Peak Grid Import Power Yearly
+        unique_id: peak_grid_import_power_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'grid_import_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'grid_import_date') }}"
+
+      - name: Peak Grid Export Power Yearly
+        unique_id: peak_grid_export_power_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'grid_export_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'grid_export_date') }}"
+
+      - name: Peak Battery Charge Power Yearly
+        unique_id: peak_battery_charge_power_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'battery_charge_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'battery_charge_date') }}"
+
+      - name: Peak Battery Discharge Power Yearly
+        unique_id: peak_battery_discharge_power_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'battery_discharge_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'battery_discharge_date') }}"
+
+      - name: Peak EV Charging Power Yearly
+        unique_id: peak_ev_charging_power_yearly
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        state: "{{ state_attr('sensor.power_records_yearly', 'ev_charging_kw') }}"
+        attributes:
+          peak_date: "{{ state_attr('sensor.power_records_yearly', 'ev_charging_date') }}"
+
+      - name: Power Records Lifetime
+        unique_id: power_records_lifetime
+        state: "{{ now().isoformat() }}"
+        attributes:
+          solar_kw: >
+            {% set current = states('sensor.peak_solar_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          solar_date: >
+            {% set current = states('sensor.peak_solar_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('solar_date', '') }}{% endif %}
+          home_load_kw: >
+            {% set current = states('sensor.peak_home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          home_load_date: >
+            {% set current = states('sensor.peak_home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('home_load_date', '') }}{% endif %}
+          home_load_no_ev_kw: >
+            {% set current = states('sensor.peak_home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          home_load_no_ev_date: >
+            {% set current = states('sensor.peak_home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          grid_import_kw: >
+            {% set current = states('sensor.peak_grid_import_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          grid_import_date: >
+            {% set current = states('sensor.peak_grid_import_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+          grid_export_kw: >
+            {% set current = states('sensor.peak_grid_export_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          grid_export_date: >
+            {% set current = states('sensor.peak_grid_export_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('grid_export_date', '') }}{% endif %}
+          battery_charge_kw: >
+            {% set current = states('sensor.peak_battery_charge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_charge_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          battery_charge_date: >
+            {% set current = states('sensor.peak_battery_charge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_charge_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('battery_charge_date', '') }}{% endif %}
+          battery_discharge_kw: >
+            {% set current = states('sensor.peak_battery_discharge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_discharge_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          battery_discharge_date: >
+            {% set current = states('sensor.peak_battery_discharge_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_discharge_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('battery_discharge_date', '') }}{% endif %}
+          ev_charging_kw: >
+            {% set current = states('sensor.peak_ev_charging_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kw', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          ev_charging_date: >
+            {% set current = states('sensor.peak_ev_charging_power_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kw', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('ev_charging_date', '') }}{% endif %}
+
+  - trigger:
+      - platform: time
+        at: "23:59:10"
+    sensor:
+      - name: Daily Energy Records Monthly
+        unique_id: daily_energy_records_monthly
+        state: "{{ now().isoformat() }}"
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          solar_generated_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          solar_generated_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('solar_generated_date', '') }}{% endif %}
+          solar_savings_usd: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.solar_savings_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_savings_usd', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          solar_savings_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.solar_savings_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_savings_usd', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('solar_savings_date', '') }}{% endif %}
+          home_load_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          home_load_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('home_load_date', '') }}{% endif %}
+          home_load_no_ev_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          home_load_no_ev_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          ev_charging_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.ev_charging_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          ev_charging_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.ev_charging_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('ev_charging_date', '') }}{% endif %}
+          grid_import_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          grid_import_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+          grid_export_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.grid_export_total_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          grid_export_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.grid_export_total_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('grid_export_date', '') }}{% endif %}
+          battery_charged_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.battery_charged_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_charged_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          battery_charged_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.battery_charged_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_charged_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('battery_charged_date', '') }}{% endif %}
+          battery_discharged_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.battery_discharged_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_discharged_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          battery_discharged_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.battery_discharged_daily') | float(0) %}
+            {% set previous = this.attributes.get('battery_discharged_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('battery_discharged_date', '') }}{% endif %}
+
+      - name: Daily Energy Records Yearly
+        unique_id: daily_energy_records_yearly
+        state: "{{ now().isoformat() }}"
+        attributes:
+          record_period: "{{ now().strftime('%Y') }}"
+          solar_generated_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          solar_generated_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('solar_generated_date', '') }}{% endif %}
+          solar_savings_usd: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_savings_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_savings_usd', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          solar_savings_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_savings_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_savings_usd', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('solar_savings_date', '') }}{% endif %}
+          home_load_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          home_load_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('home_load_date', '') }}{% endif %}
+          home_load_no_ev_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          home_load_no_ev_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          ev_charging_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.ev_charging_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          ev_charging_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.ev_charging_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('ev_charging_date', '') }}{% endif %}
+          grid_import_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          grid_import_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+          grid_export_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.grid_export_total_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          grid_export_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.grid_export_total_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().date() }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('grid_export_date', '') }}{% endif %}
+
+      - name: Daily Energy Records Lifetime
+        unique_id: daily_energy_records_lifetime
+        state: "{{ now().isoformat() }}"
+        attributes:
+          solar_generated_kwh: >
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          solar_generated_date: >
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('solar_generated_date', '') }}{% endif %}
+          solar_savings_usd: >
+            {% set current = states('sensor.solar_savings_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_savings_usd', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          solar_savings_date: >
+            {% set current = states('sensor.solar_savings_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_savings_usd', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('solar_savings_date', '') }}{% endif %}
+          home_load_kwh: >
+            {% set current = states('sensor.home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kwh', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          home_load_date: >
+            {% set current = states('sensor.home_load_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_kwh', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('home_load_date', '') }}{% endif %}
+          home_load_no_ev_kwh: >
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          home_load_no_ev_date: >
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          ev_charging_kwh: >
+            {% set current = states('sensor.ev_charging_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kwh', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          ev_charging_date: >
+            {% set current = states('sensor.ev_charging_daily') | float(0) %}
+            {% set previous = this.attributes.get('ev_charging_kwh', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('ev_charging_date', '') }}{% endif %}
+          grid_import_kwh: >
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          grid_import_date: >
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+          grid_export_kwh: >
+            {% set current = states('sensor.grid_export_total_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kwh', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          grid_export_date: >
+            {% set current = states('sensor.grid_export_total_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_export_kwh', 0) | float(0) %}
+            {% if current > previous %}{{ now().date() }}{% else %}{{ this.attributes.get('grid_export_date', '') }}{% endif %}
+
+  - trigger:
+      - platform: time
+        at: "23:59:20"
+    sensor:
+      - name: Daily Energy Low Records Monthly
+        unique_id: daily_energy_low_records_monthly
+        state: "{{ now().isoformat() }}"
+        attributes:
+          record_period: "{{ now().strftime('%Y-%m') }}"
+          solar_generated_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {{ [previous, current] | min }}
+          solar_generated_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {% if current < previous or this.attributes.get('record_period', '') != period %}{{ now().date() }}{% else %}{{ this.attributes.get('solar_generated_date', '') }}{% endif %}
+          home_load_no_ev_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {{ [previous, current] | min }}
+          home_load_no_ev_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {% if current < previous or this.attributes.get('record_period', '') != period %}{{ now().date() }}{% else %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          grid_import_kwh: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {{ [previous, current] | min }}
+          grid_import_date: >
+            {% set period = now().strftime('%Y-%m') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {% if current < previous or this.attributes.get('record_period', '') != period %}{{ now().date() }}{% else %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+
+      - name: Daily Energy Low Records Yearly
+        unique_id: daily_energy_low_records_yearly
+        state: "{{ now().isoformat() }}"
+        attributes:
+          record_period: "{{ now().strftime('%Y') }}"
+          solar_generated_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {{ [previous, current] | min }}
+          solar_generated_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {% if current < previous or this.attributes.get('record_period', '') != period %}{{ now().date() }}{% else %}{{ this.attributes.get('solar_generated_date', '') }}{% endif %}
+          home_load_no_ev_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {{ [previous, current] | min }}
+          home_load_no_ev_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {% if current < previous or this.attributes.get('record_period', '') != period %}{{ now().date() }}{% else %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          grid_import_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {{ [previous, current] | min }}
+          grid_import_date: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', current) | float(0) if this.attributes.get('record_period', '') == period else current %}
+            {% if current < previous or this.attributes.get('record_period', '') != period %}{{ now().date() }}{% else %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+
+      - name: Daily Energy Low Records Lifetime
+        unique_id: daily_energy_low_records_lifetime
+        state: "{{ now().isoformat() }}"
+        attributes:
+          solar_generated_kwh: >
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', current) | float(0) %}
+            {{ [previous, current] | min }}
+          solar_generated_date: >
+            {% set current = states('sensor.solar_generated_daily') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', current) | float(0) %}
+            {% if current < previous or this.attributes.get('solar_generated_date', '') == '' %}{{ now().date() }}{% else %}{{ this.attributes.get('solar_generated_date', '') }}{% endif %}
+          home_load_no_ev_kwh: >
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', current) | float(0) %}
+            {{ [previous, current] | min }}
+          home_load_no_ev_date: >
+            {% set current = states('sensor.home_load_no_ev_daily') | float(0) %}
+            {% set previous = this.attributes.get('home_load_no_ev_kwh', current) | float(0) %}
+            {% if current < previous or this.attributes.get('home_load_no_ev_date', '') == '' %}{{ now().date() }}{% else %}{{ this.attributes.get('home_load_no_ev_date', '') }}{% endif %}
+          grid_import_kwh: >
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', current) | float(0) %}
+            {{ [previous, current] | min }}
+          grid_import_date: >
+            {% set current = states('sensor.grid_import_daily') | float(0) %}
+            {% set previous = this.attributes.get('grid_import_kwh', current) | float(0) %}
+            {% if current < previous or this.attributes.get('grid_import_date', '') == '' %}{{ now().date() }}{% else %}{{ this.attributes.get('grid_import_date', '') }}{% endif %}
+
+  - trigger:
+      - platform: time
+        at: "23:59:30"
+      - platform: state
+        entity_id:
+          - sensor.solar_generated_monthly
+    sensor:
+      - name: Solar Monthly Generation Records Yearly
+        unique_id: solar_monthly_generation_records_yearly
+        state: "{{ now().isoformat() }}"
+        attributes:
+          record_period: "{{ now().strftime('%Y') }}"
+          solar_generated_kwh: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_generated_monthly') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {{ [previous, current] | max }}
+          solar_generated_month: >
+            {% set period = now().strftime('%Y') %}
+            {% set current = states('sensor.solar_generated_monthly') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) if this.attributes.get('record_period', '') == period else 0 %}
+            {% if current > previous %}{{ now().strftime('%Y-%m') }}{% elif this.attributes.get('record_period', '') == period %}{{ this.attributes.get('solar_generated_month', '') }}{% endif %}
+
+      - name: Solar Monthly Generation Records Lifetime
+        unique_id: solar_monthly_generation_records_lifetime
+        state: "{{ now().isoformat() }}"
+        attributes:
+          solar_generated_kwh: >
+            {% set current = states('sensor.solar_generated_monthly') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) %}
+            {{ [previous, current] | max }}
+          solar_generated_month: >
+            {% set current = states('sensor.solar_generated_monthly') | float(0) %}
+            {% set previous = this.attributes.get('solar_generated_kwh', 0) | float(0) %}
+            {% if current > previous %}{{ now().strftime('%Y-%m') }}{% else %}{{ this.attributes.get('solar_generated_month', '') }}{% endif %}

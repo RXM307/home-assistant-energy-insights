@@ -1,0 +1,145 @@
+template:
+  - sensor:
+      - name: Daily Net Export Credit
+        unique_id: daily_net_export_credit
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: >
+          {% set exported = states('sensor.grid_export_total_daily') | float(0) %}
+          {% set imported = states('sensor.grid_import_daily') | float(0) %}
+          {{ (exported - imported) | round(2) }}
+
+      - name: Monthly Net Export Credit
+        unique_id: monthly_net_export_credit
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: >
+          {% set exported = states('sensor.grid_export_total_monthly') | float(0) %}
+          {% set imported = states('sensor.grid_import_monthly') | float(0) %}
+          {{ (exported - imported) | round(2) }}
+
+      - name: Billing Net Export Credit
+        unique_id: billing_net_export_credit
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: >
+          {% set exported = states('sensor.grid_export_total_billing') | float(0) %}
+          {% set imported = states('sensor.grid_import_billing') | float(0) %}
+          {{ (exported - imported) | round(2) }}
+
+      - name: Annual Net Export Credit
+        unique_id: annual_net_export_credit
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        icon: mdi:calendar-sync
+        state: >
+          {% set exported = states('sensor.grid_export_total_net_credit_year') | float(0) %}
+          {% set imported = states('sensor.grid_import_net_credit_year') | float(0) %}
+          {{ [exported - imported, 0] | max | round(2) }}
+
+      - name: Daily Net Export Credit Value
+        unique_id: daily_net_export_credit_value
+        unit_of_measurement: "$"
+        device_class: monetary
+        state: >
+          {% set credit = states('sensor.daily_net_export_credit') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (credit * rate) | round(2) }}
+
+      - name: Monthly Net Export Credit Value
+        unique_id: monthly_net_export_credit_value
+        unit_of_measurement: "$"
+        device_class: monetary
+        state: >
+          {% set credit = states('sensor.monthly_net_export_credit') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (credit * rate) | round(2) }}
+
+      - name: Billing Net Export Credit Value
+        unique_id: billing_net_export_credit_value
+        unit_of_measurement: "$"
+        device_class: monetary
+        state: >
+          {% set credit = states('sensor.billing_net_export_credit') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (credit * rate) | round(2) }}
+
+      - name: Annual Net Export Credit Value
+        unique_id: annual_net_export_credit_value
+        unit_of_measurement: "$"
+        device_class: monetary
+        icon: mdi:cash-sync
+        state: >
+          {% set credit = states('sensor.annual_net_export_credit') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (credit * rate) | round(2) }}
+
+      - name: Daily Grid Import Cost
+        unique_id: daily_grid_import_cost
+        unit_of_measurement: "$"
+        device_class: monetary
+        state: >
+          {% set imported = states('sensor.grid_import_daily') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (imported * rate) | round(2) }}
+
+      - name: Daily Grid Export Credit Value
+        unique_id: daily_grid_export_credit_value
+        unit_of_measurement: "$"
+        device_class: monetary
+        state: >
+          {% set exported = states('sensor.grid_export_total_daily') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (exported * rate) | round(2) }}
+
+      - name: Daily Net Grid Cost
+        unique_id: daily_net_grid_cost
+        unit_of_measurement: "$"
+        device_class: monetary
+        state: >
+          {% set import_cost = states('sensor.daily_grid_import_cost') | float(0) %}
+          {% set export_credit = states('sensor.daily_grid_export_credit_value') | float(0) %}
+          {{ (import_cost - export_credit) | round(2) }}
+
+      - name: Grid Net Billing
+        unique_id: grid_net_billing
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set imported = states('sensor.grid_import_billing') | float(0) %}
+          {% set exported = states('sensor.grid_export_total_billing') | float(0) %}
+          {{ (imported - exported) | round(2) }}
+
+      - name: Grid Net Usage Daily
+        unique_id: grid_net_usage_daily
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set imported = states('sensor.grid_import_daily') | float(0) %}
+          {% set exported = states('sensor.grid_export_total_daily') | float(0) %}
+          {{ (imported - exported) | round(2) }}
+
+      - name: Grid Net Usage Monthly
+        unique_id: grid_net_usage_monthly
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set imported = states('sensor.grid_import_monthly') | float(0) %}
+          {% set exported = states('sensor.grid_export_total_monthly') | float(0) %}
+          {{ (imported - exported) | round(2) }}
+
+      - name: Grid Net Usage Lifetime
+        unique_id: grid_net_usage_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set imported = states('sensor.grid_import_lifetime') | float(0) %}
+          {% set exported = states('sensor.grid_export_total_lifetime') | float(0) %}
+          {{ (imported - exported) | round(2) }}

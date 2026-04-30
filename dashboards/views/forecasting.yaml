@@ -1,0 +1,431 @@
+title: Forecasting
+path: forecasting
+icon: mdi:crystal-ball
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    column_span: 3
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Forecasting
+        subtitle: Billing cycle, month-end energy, and forecast health
+
+      - type: custom:mushroom-chips-card
+        grid_options:
+          columns: full
+        alignment: justify
+        chips:
+          - type: template
+            entity: sensor.energy_forecast_confidence
+            icon: mdi:shield-check
+            icon_color: green
+            content: >-
+              Confidence {{ states('sensor.energy_forecast_confidence') }}
+          - type: template
+            entity: sensor.billing_forecast_status
+            icon: mdi:cash-check
+            icon_color: blue
+            content: >-
+              Billing {{ states('sensor.billing_forecast_status') }}
+          - type: template
+            entity: sensor.monthly_forecast_status
+            icon: mdi:calendar-check
+            icon_color: green
+            content: >-
+              Month {{ states('sensor.monthly_forecast_status') }}
+
+  - type: grid
+    column_span: 2
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Billing Forecast
+        subtitle: Current cycle totals and projected bill
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_actual_total
+            name: Current Bill
+            icon: mdi:receipt-text
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_actual_projected
+            name: Projected Bill
+            icon: mdi:cash-clock
+            variables:
+              metric_color: "#f3722c"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_remaining_projected
+            name: Remaining
+            icon: mdi:calendar-clock
+            variables:
+              metric_color: "#f3722c"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_projected_daily_cost_remaining
+            name: Daily Remaining
+            icon: mdi:calendar-clock
+            variables:
+              metric_color: "#f3722c"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_without_solar_projected
+            name: Without Solar
+            icon: mdi:flash-alert
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_solar_savings_projected
+            name: Solar Savings
+            icon: mdi:cash-plus
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_grid_import_projected
+            name: Grid Import
+            icon: mdi:transmission-tower-import
+            variables:
+              metric_color: "#277da1"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_net_grid_projected
+            name: Net Grid
+            icon: mdi:transmission-tower
+            variables:
+              metric_color: "#277da1"
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Billing Forecast Trend, 30d
+          show_states: true
+        graph_span: 30d
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#f94144"
+            - "#f3722c"
+            - "#90be6d"
+            - "#577590"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          stroke:
+            curve: smooth
+          markers:
+            size: 0
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 6
+            labels:
+              datetimeUTC: false
+              datetimeFormatter:
+                day: MMM d
+                month: MMM yyyy
+        all_series_config:
+          stroke_width: 3
+          type: line
+          float_precision: 2
+        series:
+          - entity: sensor.billing_cost_actual_total
+            name: Actual Bill
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.billing_cost_actual_projected
+            name: Projected Bill
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.billing_solar_savings_projected
+            name: Projected Savings
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.billing_cost_without_solar_projected
+            name: Without Solar
+            group_by:
+              func: last
+              duration: 1d
+
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Forecast Health
+        subtitle: Reset timing and confidence guardrails
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 2
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_billing_cycle_day
+            name: Cycle Day
+            icon: mdi:calendar-today
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_billing_cycle_days_remaining
+            name: Days Left
+            icon: mdi:calendar-end
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_billing_cycle_progress_percent
+            name: Cycle Progress
+            icon: mdi:chart-donut
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_month_days_remaining
+            name: Month Days Left
+            icon: mdi:calendar-end
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_month_progress_percent
+            name: Month Progress
+            icon: mdi:chart-donut
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_year_progress_percent
+            name: Year Progress
+            icon: mdi:chart-donut
+            variables:
+              metric_color: "#577590"
+
+      - type: entities
+        grid_options:
+          columns: full
+        title: Reset Setup
+        show_header_toggle: false
+        entities:
+          - entity: input_datetime.energy_billing_cycle_start
+            name: Billing Cycle Start
+          - entity: input_number.energy_billing_cycle_length_days
+            name: Billing Cycle Length
+          - entity: input_number.energy_forecast_min_elapsed_days
+            name: Forecast Minimum Days
+          - entity: input_datetime.solar_install_date
+            name: Solar Install Date
+
+  - type: grid
+    column_span: 2
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Month-End Energy
+        subtitle: Current month pace carried through month end
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 2
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.home_load_no_ev_monthly_projected
+            name: Home Projected
+            icon: mdi:home-remove
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charging_monthly_projected
+            name: EV Projected
+            icon: mdi:ev-station
+            variables:
+              metric_color: "#9b5de5"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.grid_import_monthly_projected
+            name: Import Projected
+            icon: mdi:transmission-tower-import
+            variables:
+              metric_color: "#277da1"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.grid_export_monthly_projected
+            name: Export Projected
+            icon: mdi:transmission-tower-export
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.grid_net_usage_monthly_projected
+            name: Net Grid Projected
+            icon: mdi:transmission-tower
+            variables:
+              metric_color: "#277da1"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.monthly_forecast_status
+            name: Month Status
+            icon: mdi:calendar-check
+            variables:
+              metric_color: "#577590"
+
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Solar Forecast
+        subtitle: Month-end run rate and forecast-adjusted projection
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_generated_monthly
+            name: Actual Month
+            icon: mdi:solar-power
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_generated_monthly_projected
+            name: Run Rate
+            icon: mdi:chart-line
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_generated_monthly_forecast_adjusted
+            name: Forecast Adjusted
+            icon: mdi:weather-partly-cloudy
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_monthly_forecast_adjustment
+            name: Forecast Delta
+            icon: mdi:chart-bell-curve
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_savings_monthly_projected
+            name: Savings Pace
+            icon: mdi:cash-fast
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_savings_projected_vs_average
+            name: Vs Avg Savings
+            icon: mdi:chart-line
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_month_end_forecast_method
+            name: Method
+            icon: mdi:chart-bell-curve
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_forecast_adjusted_confidence
+            name: Solar Confidence
+            icon: mdi:shield-check
+            variables:
+              metric_color: "#90be6d"
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Solar Month-End Forecast, 30d
+          show_states: true
+        graph_span: 30d
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#f9c74f"
+            - "#f3722c"
+            - "#43aa8b"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          stroke:
+            curve: smooth
+          markers:
+            size: 0
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 6
+            labels:
+              datetimeUTC: false
+              datetimeFormatter:
+                day: MMM d
+                month: MMM yyyy
+        all_series_config:
+          stroke_width: 3
+          type: line
+          float_precision: 1
+        series:
+          - entity: sensor.solar_generated_monthly
+            name: Actual Month
+            color: "#f9c74f"
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.solar_generated_monthly_projected
+            name: Run Rate
+            color: "#f3722c"
+            stroke_dash: 6
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.solar_generated_monthly_forecast_adjusted
+            name: Forecast Adjusted
+            color: "#43aa8b"
+            group_by:
+              func: last
+              duration: 1d

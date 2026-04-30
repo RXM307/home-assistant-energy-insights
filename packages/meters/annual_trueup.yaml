@@ -1,0 +1,39 @@
+utility_meter:
+  grid_import_net_credit_year:
+    source: sensor.grid_import_lifetime
+
+  grid_export_total_net_credit_year:
+    source: sensor.grid_export_total_lifetime
+
+automation:
+  - alias: Auto Reset Annual True-Up Credit Bank
+    id: auto_reset_annual_trueup_credit_bank
+    trigger:
+      - platform: time
+        at: "00:05:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.annual_trueup_auto_reset_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {% set month = states('input_number.annual_trueup_reset_month') | int(0) %}
+          {% set day = states('input_number.annual_trueup_reset_day') | int(0) %}
+          {{ now().month == month and now().day == day }}
+    action:
+      - service: utility_meter.reset
+        target:
+          entity_id:
+            - sensor.grid_import_net_credit_year
+            - sensor.grid_export_total_net_credit_year
+
+script:
+  reset_annual_trueup_credit_bank:
+    alias: Reset Annual True-Up Credit Bank
+    icon: mdi:calendar-sync
+    sequence:
+      - service: utility_meter.reset
+        target:
+          entity_id:
+            - sensor.grid_import_net_credit_year
+            - sensor.grid_export_total_net_credit_year

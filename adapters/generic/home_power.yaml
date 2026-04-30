@@ -1,0 +1,66 @@
+template:
+  - sensor:
+      - name: Home Battery Percent
+        unique_id: generic_home_battery_percent
+        unit_of_measurement: "%"
+        icon: mdi:battery
+        state: >
+          {{ states('sensor.replace_with_home_battery_percent') }}
+
+      - name: Home Battery Power
+        unique_id: generic_home_battery_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:battery
+        state: >
+          {{ states('sensor.replace_with_home_battery_power') }}
+
+      - name: Home Solar Power
+        unique_id: generic_home_solar_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {{ states('sensor.replace_with_home_solar_power') }}
+
+      - name: Home Load Power
+        unique_id: generic_home_load_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:home-lightning-bolt
+        state: >
+          {{ states('sensor.replace_with_home_load_power') }}
+
+      - name: Home Load No EV Power
+        unique_id: generic_home_load_no_ev_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:home-remove
+        state: >
+          {{ states('sensor.replace_with_home_load_no_ev_power') }}
+
+      - name: Grid Net Power
+        unique_id: generic_grid_net_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {{ states('sensor.replace_with_grid_net_power') }}
+
+      - name: Grid Status
+        unique_id: generic_grid_status
+        icon: mdi:transmission-tower
+        state: >
+          {{ states('sensor.replace_with_grid_status') }}
+
+  - binary_sensor:
+      - name: Storm Watch Active
+        unique_id: generic_storm_watch_active
+        icon: mdi:weather-lightning-rainy
+        state: >
+          {{ is_state('binary_sensor.replace_with_storm_watch_active', 'on') }}

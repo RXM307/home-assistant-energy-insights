@@ -1,0 +1,30 @@
+input_datetime:
+  energy_billing_cycle_start:
+    name: Energy Billing Cycle Start
+    has_date: true
+    has_time: false
+
+  solar_install_date:
+    name: Solar Install Date
+    has_date: true
+    has_time: false
+    icon: mdi:calendar-check
+
+input_number:
+  energy_billing_cycle_length_days:
+    name: Energy Billing Cycle Length
+    min: 1
+    max: 45
+    step: 1
+    unit_of_measurement: d
+    icon: mdi:calendar-range
+    mode: box
+
+  energy_forecast_min_elapsed_days:
+    name: Energy Forecast Minimum Elapsed Days
+    min: 1
+    max: 10
+    step: 1
+    unit_of_measurement: d
+    icon: mdi:calendar-clock
+    mode: box

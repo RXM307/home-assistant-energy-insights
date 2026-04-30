@@ -1,0 +1,140 @@
+template:
+  - sensor:
+      - name: EV Solar Backed Percent Today
+        unique_id: ev_solar_backed_percent_today
+        unit_of_measurement: "%"
+        icon: mdi:solar-power
+        state: >
+          {% set solar = states('sensor.ev_solar_backed_daily') | float(0) %}
+          {% set total = states('sensor.ev_charging_daily') | float(0) %}
+          {{ (solar / total * 100) | round(0) if total > 0 else 0 }}
+
+      - name: EV Grid Percent Today
+        unique_id: ev_grid_percent_today
+        unit_of_measurement: "%"
+        icon: mdi:transmission-tower
+        state: >
+          {% set grid = states('sensor.ev_grid_daily') | float(0) %}
+          {% set total = states('sensor.ev_charging_daily') | float(0) %}
+          {{ (grid / total * 100) | round(0) if total > 0 else 0 }}
+
+      - name: EV Solar Backed Power
+        unique_id: ev_solar_backed_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {% set ev = states('sensor.ev_charging_power') | float(0) %}
+          {% set solar = states('sensor.home_solar_power') | float(0) %}
+          {% set home = states('sensor.home_load_no_ev_power') | float(0) %}
+          {% set battery = states('sensor.home_battery_power') | float(0) %}
+          {% set direct_solar = [solar - home, 0] | max %}
+          {% set battery_support = [battery, 0] | max %}
+          {% set available = direct_solar + battery_support %}
+          {{ [ev, available] | min | round(3) }}
+
+      - name: EV From Grid Power
+        unique_id: ev_from_grid_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:transmission-tower-import
+        state: >
+          {% set ev = states('sensor.ev_charging_power') | float(0) %}
+          {% set solar_backed = states('sensor.ev_solar_backed_power') | float(0) %}
+          {{ [ev - solar_backed, 0] | max | round(3) }}
+
+      - name: EV Estimated Miles Today
+        unique_id: ev_estimated_miles_today
+        unit_of_measurement: "mi"
+        icon: mdi:map-marker-path
+        state: >
+          {% set kwh = states('sensor.ev_charging_daily') | float(0) %}
+          {% set miles_per_kwh = states('input_number.ev_miles_per_kwh') | float(3.5) %}
+          {{ (kwh * miles_per_kwh) | round(1) }}
+
+      - name: EV Estimated Miles Month
+        unique_id: ev_estimated_miles_month
+        unit_of_measurement: "mi"
+        icon: mdi:map-marker-path
+        state: >
+          {% set kwh = states('sensor.ev_charging_monthly') | float(0) %}
+          {% set miles_per_kwh = states('input_number.ev_miles_per_kwh') | float(3.5) %}
+          {{ (kwh * miles_per_kwh) | round(0) }}
+
+      - name: EV Home Charging Cost Monthly
+        unique_id: ev_home_charging_cost_monthly
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        icon: mdi:cash
+        state: >
+          {% set kwh = states('sensor.ev_charging_monthly') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (kwh * rate) | round(2) }}
+
+      - name: EV Home Charging Gas Equivalent Monthly
+        unique_id: ev_home_charging_gas_equivalent_monthly
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        icon: mdi:gas-station
+        state: >
+          {% set kwh = states('sensor.ev_charging_monthly') | float(0) %}
+          {% set miles_per_kwh = states('input_number.ev_miles_per_kwh') | float(3.5) %}
+          {% set mpg = states('input_number.gas_car_mpg') | float(32) %}
+          {% set gas = states('input_number.gas_price_per_gallon') | float(0) %}
+          {{ (kwh * miles_per_kwh / mpg * gas) | round(2) if mpg > 0 else 0 }}
+
+      - name: EV Home Charging Savings Monthly
+        unique_id: ev_home_charging_savings_monthly
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        icon: mdi:piggy-bank
+        state: >
+          {{
+            (
+              states('sensor.ev_home_charging_gas_equivalent_monthly') | float(0) -
+              states('sensor.ev_home_charging_cost_monthly') | float(0)
+            ) | round(2)
+          }}
+
+      - name: EV Home Charging Cost Billing
+        unique_id: ev_home_charging_cost_billing
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        icon: mdi:cash
+        state: >
+          {% set kwh = states('sensor.ev_charging_billing') | float(0) %}
+          {% set rate = states('sensor.billing_marginal_electricity_rate') | float(0) %}
+          {{ (kwh * rate) | round(2) }}
+
+      - name: EV Home Charging Gas Equivalent Billing
+        unique_id: ev_home_charging_gas_equivalent_billing
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        icon: mdi:gas-station
+        state: >
+          {% set kwh = states('sensor.ev_charging_billing') | float(0) %}
+          {% set miles_per_kwh = states('input_number.ev_miles_per_kwh') | float(3.5) %}
+          {% set mpg = states('input_number.gas_car_mpg') | float(32) %}
+          {% set gas = states('input_number.gas_price_per_gallon') | float(0) %}
+          {{ (kwh * miles_per_kwh / mpg * gas) | round(2) if mpg > 0 else 0 }}
+
+      - name: EV Home Charging Savings Billing
+        unique_id: ev_home_charging_savings_billing
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        icon: mdi:piggy-bank
+        state: >
+          {{
+            (
+              states('sensor.ev_home_charging_gas_equivalent_billing') | float(0) -
+              states('sensor.ev_home_charging_cost_billing') | float(0)
+            ) | round(2)
+          }}

@@ -1,0 +1,36 @@
+input_number:
+  ev_battery_capacity_kwh:
+    name: EV Battery Capacity
+    min: 20
+    max: 150
+    step: 1
+    unit_of_measurement: kWh
+    icon: mdi:battery-high
+    mode: box
+
+  ev_miles_per_kwh:
+    name: EV Miles per kWh
+    min: 1
+    max: 10
+    step: 0.01
+    unit_of_measurement: mi/kWh
+    icon: mdi:currency-usd
+    mode: box
+
+  gas_car_mpg:
+    name: Gas Car MPG
+    min: 10
+    max: 100
+    step: 0.1
+    unit_of_measurement: mpg
+    icon: mdi:gas-station
+    mode: box
+
+  gas_price_per_gallon:
+    name: Gas Price per Gallon
+    min: 0
+    max: 10
+    step: 0.01
+    unit_of_measurement: $/gal
+    icon: mdi:gas-station
+    mode: box

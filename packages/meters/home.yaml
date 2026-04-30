@@ -1,0 +1,31 @@
+utility_meter:
+  home_load_daily:
+    source: sensor.home_load_lifetime
+    cycle: daily
+
+  home_load_monthly:
+    source: sensor.home_load_lifetime
+    cycle: monthly
+
+  home_load_billing:
+    source: sensor.home_load_lifetime
+
+  home_load_yearly:
+    source: sensor.home_load_lifetime
+    cycle: yearly
+
+  home_load_no_ev_daily:
+    source: sensor.home_load_no_ev_lifetime
+    cycle: daily
+
+  home_load_no_ev_monthly:
+    source: sensor.home_load_no_ev_lifetime
+    cycle: monthly
+
+  home_load_no_ev_billing:
+    source: sensor.home_load_no_ev_lifetime
+
+  home_load_no_ev_yearly:
+    source: sensor.home_load_no_ev_lifetime
+    cycle: yearly
+

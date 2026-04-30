@@ -1,0 +1,80 @@
+input_number:
+  billing_tier_1_limit_kwh:
+    name: Billing Tier 1 Limit kWh
+    min: 0
+    max: 2000
+    step: 1
+    unit_of_measurement: kWh
+    icon: mdi:lightning-bolt
+    mode: box
+
+  billing_tier_1_rate:
+    name: Billing Tier 1 Rate
+    min: 0
+    max: 1
+    step: 0.000001
+    unit_of_measurement: $/kWh
+    mode: box
+
+  billing_tier_2_rate:
+    name: Billing Tier 2 Rate
+    min: 0
+    max: 1
+    step: 0.000001
+    unit_of_measurement: $/kWh
+    mode: box
+
+  billing_program_charge_rate:
+    name: Billing Program Charge Rate
+    min: 0
+    max: 0.1
+    step: 0.000001
+    unit_of_measurement: $/kWh
+    mode: box
+
+  billing_power_cost_adjustment_rate:
+    name: Billing Power Cost Adjustment Rate
+    min: 0
+    max: 0.1
+    step: 0.000001
+    unit_of_measurement: $/kWh
+    icon: mdi:currency-usd
+    mode: box
+
+  billing_basic_charge:
+    name: Billing Basic Charge
+    min: 0
+    max: 50
+    step: 0.01
+    unit_of_measurement: $
+    icon: mdi:currency-usd
+    mode: box
+
+  billing_tax_rate:
+    name: Billing Tax Rate
+    min: 0
+    max: 0.2
+    step: 0.00001
+    icon: mdi:label-percent-outline
+    mode: box
+
+  annual_trueup_reset_month:
+    name: Annual True-Up Reset Month
+    min: 1
+    max: 12
+    step: 1
+    icon: mdi:calendar-month
+    mode: box
+
+  annual_trueup_reset_day:
+    name: Annual True-Up Reset Day
+    min: 1
+    max: 31
+    step: 1
+    icon: mdi:calendar-today
+    mode: box
+
+input_boolean:
+  annual_trueup_auto_reset_enabled:
+    name: Annual True-Up Auto Reset Enabled
+    icon: mdi:calendar-sync

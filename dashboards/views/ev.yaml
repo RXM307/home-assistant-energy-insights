@@ -1,0 +1,368 @@
+title: EV
+path: ev
+icon: mdi:car-electric
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    column_span: 2
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: EV Charging
+        subtitle: Battery, charging state, and source split
+
+      - type: custom:mushroom-chips-card
+        grid_options:
+          columns: full
+        alignment: justify
+        chips:
+          - type: template
+            entity: sensor.ev_battery_percent
+            tap_action:
+              action: more-info
+            icon: mdi:battery
+            icon_color: green
+            content: >-
+              {{ states('sensor.ev_battery_percent') }}%
+          - type: template
+            entity: sensor.ev_charging_state
+            tap_action:
+              action: more-info
+            icon: mdi:ev-plug-type2
+            icon_color: purple
+            content: >-
+              {{ states('sensor.ev_charging_state') | replace('_', ' ') | title }}
+          - type: template
+            entity: sensor.ev_charge_current
+            tap_action:
+              action: more-info
+            icon: mdi:current-ac
+            icon_color: purple
+            content: >-
+              {{ "%.0f" | format(states('sensor.ev_charge_current') | float(0)) }} A
+          - type: template
+            entity: binary_sensor.ev_plugged_in
+            tap_action:
+              action: more-info
+            icon: mdi:power-plug
+            icon_color: >-
+              {{ iif(is_state('binary_sensor.ev_plugged_in','on'), 'green', 'grey') }}
+            content: >-
+              {{ iif(is_state('binary_sensor.ev_plugged_in','on'), 'Plugged In', 'Unplugged') }}
+          - type: template
+            entity: sensor.ev_range
+            tap_action:
+              action: more-info
+            icon: mdi:map-marker-distance
+            icon_color: purple
+            content: >-
+              {{ states('sensor.ev_range') }} mi
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_battery_percent
+            name: Battery
+            icon: mdi:battery
+            variables:
+              metric_color: "#43aa8b"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_range
+            name: Range
+            icon: mdi:map-marker-distance
+            variables:
+              metric_color: "#9b5de5"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_stored_energy
+            name: Stored Energy
+            icon: mdi:battery-high
+            variables:
+              metric_color: "#43aa8b"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_odometer
+            name: Odometer
+            icon: mdi:counter
+            variables:
+              metric_color: "#9b5de5"
+
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Charging Now
+        subtitle: Power, target, and time to full
+
+      - type: gauge
+        grid_options:
+          columns: full
+        entity: sensor.ev_charging_power
+        name: Charging Power
+        min: 0
+        max: 12
+        needle: true
+        severity:
+          green: 0
+          yellow: 5
+          red: 9
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 2
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charge_limit
+            name: Charge Limit
+            icon: mdi:battery-sync
+            variables:
+              metric_color: "#43aa8b"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_time_to_full
+            name: Time To Full
+            icon: mdi:timer-outline
+            variables:
+              metric_color: "#43aa8b"
+            custom_fields:
+              value: >-
+                [[[
+                  const raw = entity?.state;
+                  if (!raw || raw === "unknown" || raw === "unavailable") return "n/a";
+
+                  const target = new Date(raw);
+                  if (Number.isNaN(target.getTime())) return String(raw).replaceAll("_", " ");
+
+                  const diffMinutes = Math.max(0, Math.round((target.getTime() - Date.now()) / 60000));
+                  const hours = Math.floor(diffMinutes / 60);
+                  const minutes = diffMinutes % 60;
+
+                  if (diffMinutes <= 1) return "now";
+                  if (hours === 0) return `in ${minutes}m`;
+                  return minutes > 0 ? `in ${hours}h ${minutes}m` : `in ${hours}h`;
+                ]]]
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_energy_to_target
+            name: To Target
+            icon: mdi:battery-arrow-up
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charging_power
+            name: Charger Power
+            icon: mdi:ev-station
+            variables:
+              metric_color: "#9b5de5"
+
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Charging Totals
+        subtitle: Today, billing cycle, month, and year
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charging_daily
+            name: Today
+            icon: mdi:calendar-today
+            variables:
+              metric_color: "#9b5de5"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charging_billing
+            name: Billing Cycle
+            icon: mdi:calendar-sync
+            variables:
+              metric_color: "#9b5de5"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charging_monthly
+            name: This Month
+            icon: mdi:calendar-month
+            variables:
+              metric_color: "#9b5de5"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charging_yearly
+            name: This Year
+            icon: mdi:calendar
+            variables:
+              metric_color: "#9b5de5"
+
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Charging Source
+        subtitle: Solar-backed charging compared with grid charging
+
+      - type: custom:mushroom-chips-card
+        grid_options:
+          columns: full
+        alignment: justify
+        chips:
+          - type: template
+            entity: sensor.ev_solar_backed_percent_today
+            tap_action:
+              action: more-info
+            icon: mdi:solar-power
+            icon_color: amber
+            content: >-
+              Solar {{ states('sensor.ev_solar_backed_percent_today') }}%
+          - type: template
+            entity: sensor.ev_grid_percent_today
+            tap_action:
+              action: more-info
+            icon: mdi:transmission-tower
+            icon_color: blue
+            content: >-
+              Grid {{ states('sensor.ev_grid_percent_today') }}%
+          - type: template
+            entity: sensor.ev_estimated_miles_today
+            tap_action:
+              action: more-info
+            icon: mdi:map-marker-path
+            icon_color: purple
+            content: >-
+              {{ states('sensor.ev_estimated_miles_today') }} mi today
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Charging Source, 30d
+          show_states: true
+        graph_span: 30d
+        apex_config:
+          chart:
+            height: 300px
+          colors:
+            - "#f9c74f"
+            - "#277da1"
+            - "#9b5de5"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 4
+            labels:
+              rotate: -30
+              minHeight: 56
+              datetimeUTC: false
+              datetimeFormatter:
+                day: MMM d
+                month: MMM yyyy
+        series:
+          - entity: sensor.ev_solar_backed_daily
+            name: Solar-Backed
+            type: column
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.ev_grid_daily
+            name: Grid
+            type: column
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.ev_charging_daily
+            name: Total
+            type: line
+            group_by:
+              func: last
+              duration: 1d
+
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Live Charging
+        subtitle: Charging power and battery state of charge
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Charging Power and Battery, 24h
+          show_states: true
+        graph_span: 24h
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#9b5de5"
+            - "#43aa8b"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          stroke:
+            curve: smooth
+          markers:
+            size: 0
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 6
+            labels:
+              datetimeUTC: false
+              datetimeFormatter:
+                hour: HH:mm
+                day: MMM d
+        all_series_config:
+          stroke_width: 3
+          float_precision: 2
+        series:
+          - entity: sensor.ev_charging_power
+            name: Charging Power
+            type: line
+            yaxis_id: power
+            group_by:
+              func: avg
+              duration: 5min
+          - entity: sensor.ev_battery_percent
+            name: Battery %
+            type: line
+            yaxis_id: percent
+            group_by:
+              func: avg
+              duration: 15min
+        yaxis:
+          - id: power
+            min: 0
+            max: 12
+            decimals: 2
+          - id: percent
+            opposite: true
+            min: 0
+            max: 100
+            decimals: 0

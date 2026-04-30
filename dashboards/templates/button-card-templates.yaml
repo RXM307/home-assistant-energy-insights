@@ -1,0 +1,133 @@
+button_card_templates:
+  insights_record_tile:
+    show_state: false
+    show_label: false
+    tap_action:
+      action: more-info
+    styles:
+      card:
+        - padding: 12px
+        - min-height: 148px
+        - text-align: left
+      grid:
+        - grid-template-areas: '"i n" "value value" "date date"'
+        - grid-template-columns: 28px 1fr
+        - grid-template-rows: 24px min-content min-content
+      img_cell:
+        - width: 24px
+        - height: 24px
+        - justify-self: start
+      icon:
+        - width: 18px
+      name:
+        - justify-self: start
+        - align-self: center
+        - font-size: 12px
+        - line-height: 14px
+        - white-space: normal
+      custom_fields:
+        value:
+          - justify-self: start
+          - margin-top: 8px
+          - font-size: 18px
+          - line-height: 20px
+          - font-weight: 700
+          - white-space: normal
+        date:
+          - justify-self: start
+          - margin-top: 6px
+          - font-size: 11px
+          - line-height: 14px
+          - opacity: 0.68
+          - white-space: normal
+  insights_metric_tile:
+    show_state: false
+    show_label: false
+    tap_action:
+      action: more-info
+    custom_fields:
+      value: >-
+        [[[
+          const raw = entity?.state;
+          if (raw === undefined || raw === "unknown" || raw === "unavailable") return "n/a";
+
+          const unit = entity?.attributes?.unit_of_measurement || "";
+          const n = Number(raw);
+
+          if (Number.isFinite(n)) {
+            const abs = Math.abs(n);
+            const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+
+            if (unit === "$") return `$${n.toFixed(decimals)}`;
+            if (unit === "h") {
+              const totalMinutes = Math.round(n * 60);
+              const hours = Math.floor(totalMinutes / 60);
+              const minutes = totalMinutes % 60;
+              return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            }
+            if (unit === "%") return `${n.toFixed(decimals)}%`;
+            if (["mi", "A", "V", "kW", "kWh", "W", "Wh", "d", "yr", "yrs", "°F", "°C"].includes(unit)) {
+              return `${n.toFixed(decimals)} ${unit}`;
+            }
+            return `${n.toFixed(decimals)}${unit ? ` ${unit}` : ""}`;
+          }
+
+          return String(raw).replaceAll("_", " ");
+        ]]]
+    styles:
+      card:
+        - padding: 8px
+        - min-height: 86px
+        - text-align: left
+        - --insights-metric-color: >-
+            [[[
+              if (variables?.metric_color) return variables.metric_color;
+
+              const id = entity?.entity_id || "";
+              const friendly = entity?.attributes?.friendly_name || "";
+              const name = this?._config?.name || "";
+              const key = `${id} ${friendly} ${name} ${variables?.metric_color_key || ""}`.toLowerCase();
+              const n = Number(entity?.state);
+
+              if (key.includes("grid_net") || key.includes("net grid") || key.includes("net_usage")) {
+                return Number.isFinite(n) && n <= 0 ? "#4d908e" : "#277da1";
+              }
+              if (key.includes("grid_export_solar") || key.includes("solar_export")) return "#f9c74f";
+              if (key.includes("grid_export_battery") || key.includes("battery_export")) return "#43aa8b";
+              if (key.includes("saving") || key.includes("earning") || key.includes("value")) return "#90be6d";
+              if (key.includes("cost") || key.includes("bill") || key.includes("remaining") || key.includes("breakeven")) return "#f94144";
+              if (key.includes("solar") || key.includes("production")) return "#f9c74f";
+              if (key.includes("ev") || key.includes("charger") || key.includes("wall connector") || key.includes("range") || key.includes("mile") || key.includes("odometer")) return "#9b5de5";
+              if (key.includes("battery") || key.includes("vpp") || key.includes("reserve")) return "#43aa8b";
+              if (key.includes("export") || key.includes("credit")) return "#4d908e";
+              if (key.includes("grid") || key.includes("import")) return "#277da1";
+              if (key.includes("home") || key.includes("load")) return "#f94144";
+              if (key.includes("date") || key.includes("month") || key.includes("year") || key.includes("calendar") || key.includes("time")) return "#577590";
+              return "#577590";
+            ]]]
+      grid:
+        - grid-template-areas: '"i n" "value value"'
+        - grid-template-columns: 24px 1fr
+        - grid-template-rows: 22px min-content
+      img_cell:
+        - width: 22px
+        - height: 22px
+        - justify-self: start
+      icon:
+        - width: 17px
+        - color: var(--insights-metric-color)
+      name:
+        - justify-self: start
+        - align-self: center
+        - font-size: 11px
+        - line-height: 13px
+        - white-space: normal
+      custom_fields:
+        value:
+          - justify-self: start
+          - margin-top: 8px
+          - font-size: 17px
+          - line-height: 20px
+          - font-weight: 700
+          - white-space: normal
+          - color: var(--insights-metric-color)

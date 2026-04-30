@@ -1,0 +1,152 @@
+template:
+  - sensor:
+      - name: Billing Variable Charge Actual Pretax
+        unique_id: billing_variable_charge_actual_pretax
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {% set net = states('sensor.grid_net_billing') | float(0) %}
+          {% set billed = [net, 0] | max %}
+          {% set tier1_limit = states('input_number.billing_tier_1_limit_kwh') | float(600) %}
+          {% set tier1_rate = states('input_number.billing_tier_1_rate') | float(0) %}
+          {% set tier2_rate = states('input_number.billing_tier_2_rate') | float(0) %}
+          {% set program = states('input_number.billing_program_charge_rate') | float(0) %}
+          {% set pca = states('input_number.billing_power_cost_adjustment_rate') | float(0) %}
+
+          {% if billed <= tier1_limit %}
+            {% set energy = billed * tier1_rate %}
+          {% else %}
+            {% set energy = tier1_limit * tier1_rate + (billed - tier1_limit) * tier2_rate %}
+          {% endif %}
+
+          {{
+            (
+              energy
+              + billed * program
+              + billed * pca
+            ) | round(2)
+          }}
+
+      - name: Billing Cost Actual Pretax
+        unique_id: billing_cost_actual_pretax
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {{
+            (
+              states('sensor.billing_variable_charge_actual_pretax') | float(0) +
+              states('input_number.billing_basic_charge') | float(0)
+            ) | round(2)
+          }}
+
+      - name: Billing Cost Actual Total
+        unique_id: billing_cost_actual_total
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {% set pretax = states('sensor.billing_cost_actual_pretax') | float(0) %}
+          {% set tax = states('input_number.billing_tax_rate') | float(0) %}
+          {{ (pretax * (1 + tax)) | round(2) }}
+
+      - name: Billing Cost Without Solar Pretax
+        unique_id: billing_cost_without_solar_pretax
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {% set usage = states('sensor.home_load_billing') | float(0) %}
+          {% set tier1_limit = states('input_number.billing_tier_1_limit_kwh') | float(600) %}
+          {% set tier1_rate = states('input_number.billing_tier_1_rate') | float(0) %}
+          {% set tier2_rate = states('input_number.billing_tier_2_rate') | float(0) %}
+          {% set program = states('input_number.billing_program_charge_rate') | float(0) %}
+          {% set pca = states('input_number.billing_power_cost_adjustment_rate') | float(0) %}
+          {% set basic = states('input_number.billing_basic_charge') | float(0) %}
+
+          {% if usage <= tier1_limit %}
+            {% set energy = usage * tier1_rate %}
+          {% else %}
+            {% set energy = tier1_limit * tier1_rate + (usage - tier1_limit) * tier2_rate %}
+          {% endif %}
+
+          {{
+            (
+              energy
+              + usage * program
+              + usage * pca
+              + basic
+            ) | round(2)
+          }}
+
+      - name: Billing Cost Without Solar Total
+        unique_id: billing_cost_without_solar_total
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {% set pretax = states('sensor.billing_cost_without_solar_pretax') | float(0) %}
+          {% set tax = states('input_number.billing_tax_rate') | float(0) %}
+          {{ (pretax * (1 + tax)) | round(2) }}
+
+      - name: Billing Solar Savings Total
+        unique_id: billing_solar_savings_total
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {{
+            (
+              states('sensor.billing_cost_without_solar_total') | float(0) -
+              states('sensor.billing_cost_actual_total') | float(0)
+            ) | round(2)
+          }}
+
+      - name: Billing Marginal Electricity Rate
+        unique_id: billing_marginal_electricity_rate
+        unit_of_measurement: "$/kWh"
+        state_class: measurement
+        icon: mdi:cash-fast
+        state: >
+          {% set net = states('sensor.grid_net_billing') | float(0) %}
+          {% set tier1_limit = states('input_number.billing_tier_1_limit_kwh') | float(600) %}
+          {% set tier1_rate = states('input_number.billing_tier_1_rate') | float(0) %}
+          {% set tier2_rate = states('input_number.billing_tier_2_rate') | float(0) %}
+          {% set program = states('input_number.billing_program_charge_rate') | float(0) %}
+          {% set pca = states('input_number.billing_power_cost_adjustment_rate') | float(0) %}
+          {% set tax = states('input_number.billing_tax_rate') | float(0) %}
+          {% set billed = [net, 0] | max %}
+
+          {% if billed < tier1_limit %}
+            {% set base = tier1_rate %}
+          {% else %}
+            {% set base = tier2_rate %}
+          {% endif %}
+
+          {% set pretax = base + program + pca %}
+          {{ (pretax * (1 + tax)) | round(4) }}
+
+      - name: Billing Effective Total Rate
+        unique_id: billing_effective_total_rate
+        unit_of_measurement: "$/kWh"
+        state_class: measurement
+        icon: mdi:cash-check
+        state: >
+          {% set net = states('sensor.grid_net_billing') | float(0) %}
+          {% set total = states('sensor.billing_cost_actual_total') | float(0) %}
+          {% if net > 0 %}
+            {{ (total / net) | round(4) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: Billing Solar Offset Percent
+        unique_id: billing_solar_offset_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {% set savings = states('sensor.billing_solar_savings_total') | float(0) %}
+          {% set without = states('sensor.billing_cost_without_solar_total') | float(0) %}
+          {{ (savings / without * 100) | round(1) if without > 0 else 0 }}

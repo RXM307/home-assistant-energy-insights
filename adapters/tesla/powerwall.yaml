@@ -1,0 +1,197 @@
+template:
+  - sensor:
+      - name: Grid Import Lifetime
+        unique_id: canonical_grid_import_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:transmission-tower-import
+        state: >
+          {% set value = states('sensor.energy_grid_imported') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Solar Generated Lifetime
+        unique_id: canonical_solar_generated_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:solar-power
+        state: >
+          {% set value = states('sensor.energy_total_solar_generated') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Grid Export Solar Lifetime
+        unique_id: canonical_grid_export_solar_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:solar-power
+        state: >
+          {% set value = states('sensor.energy_grid_exported_from_solar') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Grid Export Battery Lifetime
+        unique_id: canonical_grid_export_battery_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:battery-arrow-down
+        state: >
+          {% set value = states('sensor.energy_grid_exported_from_battery') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Home Load Lifetime
+        unique_id: canonical_home_load_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:home-lightning-bolt
+        state: >
+          {% set value = states('sensor.energy_total_home_usage') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Charging Lifetime
+        unique_id: canonical_ev_charging_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:ev-station
+        state: >
+          {% set value = states('sensor.ev_charging_energy') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Battery Discharged Lifetime
+        unique_id: canonical_battery_discharged_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:battery-arrow-down
+        state: >
+          {% set value = states('sensor.energy_total_battery_discharged') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Battery Charged Lifetime
+        unique_id: canonical_battery_charged_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:battery-arrow-up
+        state: >
+          {% set value = states('sensor.energy_total_battery_charged') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Battery Charged From Solar Lifetime
+        unique_id: canonical_battery_charged_from_solar_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:solar-power
+        state: >
+          {% set value = states('sensor.energy_battery_charged_from_solar') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Battery Charged From Grid Lifetime
+        unique_id: canonical_battery_charged_from_grid_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:transmission-tower-import
+        state: >
+          {% set value = states('sensor.energy_battery_charged_from_grid') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Grid Export Total Lifetime
+        unique_id: canonical_grid_export_total_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:transmission-tower-export
+        state: >
+          {% set value = states('sensor.energy_total_grid_exported') %}
+          {{ (value | float(0)) | round(3) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Home Load No EV Lifetime
+        unique_id: canonical_home_load_no_ev_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:home-remove
+        state: >
+          {{ [states('sensor.home_load_lifetime') | float(0) - states('sensor.ev_charging_lifetime') | float(0), 0] | max | round(3) }}
+
+      - name: Home Battery Percent
+        unique_id: canonical_home_battery_percent
+        unit_of_measurement: "%"
+        icon: mdi:battery
+        state: >
+          {% set value = states('sensor.energy_percentage_charged') %}
+          {{ value if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Home Battery Power
+        unique_id: canonical_home_battery_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:battery
+        state: >
+          {% set value = states('sensor.energy_battery_power') %}
+          {{ (value | float(0)) | round(2) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Home Solar Power
+        unique_id: canonical_home_solar_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {% set value = states('sensor.energy_solar_power') %}
+          {{ (value | float(0)) | round(2) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Home Load Power
+        unique_id: canonical_home_load_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:home-lightning-bolt
+        state: >
+          {% set value = states('sensor.energy_load_power') %}
+          {{ (value | float(0)) | round(2) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Home Load No EV Power
+        unique_id: canonical_home_load_no_ev_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:home-remove
+        state: >
+          {% set home = states('sensor.home_load_power') %}
+          {% if home in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            unknown
+          {% else %}
+            {% set ev = states('sensor.ev_charging_power') | float(0) %}
+            {{ [((home | float(0)) - ev), 0] | max | round(2) }}
+          {% endif %}
+
+      - name: Grid Net Power
+        unique_id: canonical_grid_net_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set value = states('sensor.energy_grid_power') %}
+          {{ (value | float(0)) | round(2) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Grid Status
+        unique_id: canonical_grid_status
+        icon: mdi:transmission-tower
+        state: >
+          {% set value = states('sensor.energy_island_status') %}
+          {{ value if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+  - binary_sensor:
+      - name: Storm Watch Active
+        unique_id: canonical_storm_watch_active
+        icon: mdi:weather-lightning-rainy
+        state: >
+          {{ is_state('binary_sensor.energy_storm_watch_active', 'on') }}

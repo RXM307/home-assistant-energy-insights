@@ -1,0 +1,340 @@
+title: Billing
+path: billing
+icon: mdi:cash
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    column_span: 2
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Billing
+        subtitle: Current bill, credits, and billing-cycle energy
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 3
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_actual_total
+            name: Actual Bill
+            icon: mdi:receipt-text
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_without_solar_total
+            name: Without Solar
+            icon: mdi:flash-alert
+            variables:
+              metric_color: "#f3722c"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_solar_savings_total
+            name: Savings
+            icon: mdi:cash-plus
+            variables:
+              metric_color: "#90be6d"
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_actual_projected
+            name: Projected Bill
+            icon: mdi:cash-clock
+            variables:
+              metric_color: "#f3722c"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_without_solar_projected
+            name: No Solar Projected
+            icon: mdi:flash-alert
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_solar_savings_projected
+            name: Savings Projected
+            icon: mdi:cash-plus
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_billing_cycle_progress_percent
+            name: Cycle Progress
+            icon: mdi:chart-donut
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_projected_daily_cost_remaining
+            name: Daily Remaining
+            icon: mdi:calendar-clock
+            variables:
+              metric_color: "#f3722c"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_forecast_confidence
+            name: Forecast Confidence
+            icon: mdi:shield-check
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_forecast_status
+            name: Billing Status
+            icon: mdi:cash-check
+            variables:
+              metric_color: "#577590"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_billing_cycle_days_remaining
+            name: Days Left
+            icon: mdi:calendar-end
+            variables:
+              metric_color: "#577590"
+
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Credit Bank
+        subtitle: Daily, billing-cycle, and annual credits
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 3
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.daily_net_export_credit
+            name: Daily Credit
+            icon: mdi:calendar-today
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_net_export_credit
+            name: Billing Credit
+            icon: mdi:calendar-sync
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.annual_net_export_credit
+            name: Annual Bank
+            icon: mdi:battery-medium
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.daily_net_export_credit_value
+            name: Daily Credit Value
+            icon: mdi:cash-plus
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_net_export_credit_value
+            name: Billing Credit Value
+            icon: mdi:cash-plus
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.annual_net_export_credit_value
+            name: Annual Bank Value
+            icon: mdi:cash-plus
+            variables:
+              metric_color: "#90be6d"
+
+      - type: grid
+        grid_options:
+          columns: full
+        columns: 3
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_generated_billing
+            name: Solar Generated
+            icon: mdi:solar-power
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.home_load_billing
+            name: Home Load
+            icon: mdi:home-lightning-bolt
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.home_load_no_ev_billing
+            name: Home No EV
+            icon: mdi:home-remove
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.grid_import_billing
+            name: Grid Import
+            icon: mdi:transmission-tower-import
+            variables:
+              metric_color: "#277da1"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.grid_export_total_billing
+            name: Grid Export
+            icon: mdi:transmission-tower-export
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.grid_net_billing
+            name: Net Grid
+            icon: mdi:transmission-tower
+            variables:
+              metric_color: "#277da1"
+
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        grid_options:
+          columns: full
+        title: Rates
+        subtitle: Inputs used by billing and EV cost math
+
+      - type: entities
+        grid_options:
+          columns: full
+        title: Billing Inputs
+        show_header_toggle: false
+        entities:
+          - entity: input_number.billing_tier_1_limit_kwh
+            name: Tier 1 Limit
+          - entity: input_number.billing_tier_1_rate
+            name: Tier 1 Rate
+          - entity: input_number.billing_tier_2_rate
+            name: Tier 2 Rate
+          - entity: input_number.billing_program_charge_rate
+            name: Program Charge
+          - entity: input_number.billing_power_cost_adjustment_rate
+            name: Power Cost Adjustment
+          - entity: input_number.billing_basic_charge
+            name: Basic Charge
+          - entity: input_number.billing_tax_rate
+            name: Tax Rate
+          - entity: sensor.billing_marginal_electricity_rate
+            name: Marginal Electricity Rate
+          - entity: sensor.billing_effective_total_rate
+            name: Effective Total Rate
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Billing Cost vs Savings, 30d
+          show_states: true
+        graph_span: 30d
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#f94144"
+            - "#f9c74f"
+            - "#90be6d"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 6
+            labels:
+              datetimeUTC: false
+              datetimeFormatter:
+                day: MMM d
+                month: MMM yyyy
+        all_series_config:
+          stroke_width: 3
+          type: line
+          float_precision: 2
+        series:
+          - entity: sensor.billing_cost_actual_total
+            name: Actual Bill
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.billing_cost_without_solar_total
+            name: Without Solar
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.billing_solar_savings_total
+            name: Solar Savings
+            group_by:
+              func: last
+              duration: 1d
+
+      - type: custom:apexcharts-card
+        grid_options:
+          columns: full
+        section_mode: true
+        header:
+          show: true
+          title: Annual Credit Bank, 12 Months
+          show_states: true
+        graph_span: 365d
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#4d908e"
+            - "#90be6d"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 6
+            labels:
+              datetimeUTC: false
+              datetimeFormatter:
+                month: MMM yyyy
+                year: yyyy
+        all_series_config:
+          stroke_width: 3
+          type: line
+          float_precision: 2
+        series:
+          - entity: sensor.annual_net_export_credit
+            name: Credit Bank
+            group_by:
+              func: last
+              duration: 7d
+          - entity: sensor.annual_net_export_credit_value
+            name: Credit Value
+            group_by:
+              func: last
+              duration: 7d

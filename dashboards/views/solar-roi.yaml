@@ -1,0 +1,484 @@
+---
+title: Solar ROI
+path: solar-roi
+icon: mdi:solar-power
+type: sections
+max_columns: 3
+sections:
+- type: grid
+  column_span: 2
+  cards:
+  - type: custom:mushroom-title-card
+    grid_options:
+      columns: full
+    title: Billing
+    subtitle: Current cost, savings, and billing-cycle energy
+  - type: horizontal-stack
+    grid_options:
+      columns: full
+    cards:
+    - type: custom:mushroom-template-card
+      entity: sensor.billing_cost_actual_total
+      tap_action:
+        action: more-info
+      primary: Actual Bill
+      secondary: ${{ "%.2f" | format(states('sensor.billing_cost_actual_total') |
+        float(0)) }}
+      icon: mdi:receipt-text
+      icon_color: red
+    - type: custom:mushroom-template-card
+      entity: sensor.billing_cost_without_solar_total
+      tap_action:
+        action: more-info
+      primary: Without Solar
+      secondary: ${{ "%.2f" | format(states('sensor.billing_cost_without_solar_total')
+        | float(0)) }}
+      icon: mdi:flash-alert
+      icon_color: orange
+    - type: custom:mushroom-template-card
+      entity: sensor.billing_solar_savings_total
+      tap_action:
+        action: more-info
+      primary: Savings
+      secondary: ${{ "%.2f" | format(states('sensor.billing_solar_savings_total')
+        | float(0)) }}
+      icon: mdi:cash-plus
+      icon_color: green
+  - type: grid
+    grid_options:
+      columns: full
+    columns: 4
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.billing_cost_actual_projected
+      tap_action:
+        action: more-info
+      name: Projected Bill
+      icon: mdi:cash-clock
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.billing_cost_without_solar_projected
+      tap_action:
+        action: more-info
+      name: No Solar Projected
+      icon: mdi:flash-alert
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.billing_solar_savings_projected
+      tap_action:
+        action: more-info
+      name: Savings Projected
+      icon: mdi:cash-plus
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.energy_billing_cycle_progress_percent
+      tap_action:
+        action: more-info
+      name: Cycle Progress
+      icon: mdi:chart-donut
+  - type: grid
+    grid_options:
+      columns: full
+    columns: 4
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.billing_projected_vs_current_delta
+      tap_action:
+        action: more-info
+      name: Bill Remaining
+      icon: mdi:cash-clock
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.billing_projected_daily_cost_remaining
+      tap_action:
+        action: more-info
+      name: Daily Remaining
+      icon: mdi:calendar-clock
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.energy_forecast_confidence
+      tap_action:
+        action: more-info
+      name: Forecast Confidence
+      icon: mdi:shield-check
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.billing_forecast_status
+      tap_action:
+        action: more-info
+      name: Billing Status
+      icon: mdi:cash-check
+  - type: grid
+    grid_options:
+      columns: full
+    columns: 3
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_generated_billing
+      tap_action:
+        action: more-info
+      name: Solar Generated
+      icon: mdi:solar-power
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.home_load_billing
+      tap_action:
+        action: more-info
+      name: Home Load
+      icon: mdi:home-lightning-bolt
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.home_load_no_ev_billing
+      tap_action:
+        action: more-info
+      name: Home No EV
+      icon: mdi:home-remove
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_import_billing
+      tap_action:
+        action: more-info
+      name: Grid Import
+      icon: mdi:transmission-tower-import
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_total_billing
+      tap_action:
+        action: more-info
+      name: Grid Export
+      icon: mdi:transmission-tower-export
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_net_billing
+      tap_action:
+        action: more-info
+      name: Net Grid
+      icon: mdi:transmission-tower
+- type: grid
+  cards:
+  - type: custom:mushroom-title-card
+    grid_options:
+      columns: full
+    title: Payback
+    subtitle: Breakeven progress and projection
+  - type: custom:mushroom-chips-card
+    grid_options:
+      columns: full
+    alignment: justify
+    chips:
+    - type: template
+      entity: sensor.solar_breakeven_progress
+      tap_action:
+        action: more-info
+      icon: mdi:chart-arc
+      icon_color: green
+      content: "{{ states('sensor.solar_breakeven_progress') }}% paid back"
+    - type: template
+      entity: sensor.solar_breakeven_years_remaining
+      tap_action:
+        action: more-info
+      icon: mdi:calendar-clock
+      icon_color: blue
+      content: "{{ states('sensor.solar_breakeven_years_remaining') }} yrs left"
+    - type: template
+      entity: sensor.solar_breakeven_date
+      tap_action:
+        action: more-info
+      icon: mdi:calendar-check
+      icon_color: green
+      content: "{{ states('sensor.solar_breakeven_date') }}"
+  - type: gauge
+    grid_options:
+      columns: 6
+    entity: sensor.solar_breakeven_progress
+    name: Solar Payback Progress
+    min: 0
+    max: 100
+    severity:
+      red: 0
+      yellow: 35
+      green: 75
+  - type: grid
+    grid_options:
+      columns: 6
+    columns: 2
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_savings_lifetime
+      tap_action:
+        action: more-info
+      name: Lifetime Savings
+      icon: mdi:cash-plus
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_breakeven_remaining
+      tap_action:
+        action: more-info
+      name: Remaining
+      icon: mdi:cash-clock
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_savings_average_monthly
+      tap_action:
+        action: more-info
+      name: Avg Monthly
+      icon: mdi:calendar-month
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_breakeven_months_remaining
+      tap_action:
+        action: more-info
+      name: Months Left
+      icon: mdi:calendar-clock
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_breakeven_years_remaining
+      tap_action:
+        action: more-info
+      name: Years Left
+      icon: mdi:calendar-range
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_breakeven_date
+      tap_action:
+        action: more-info
+      name: Breakeven Date
+      icon: mdi:calendar-check
+  - type: custom:mushroom-title-card
+    grid_options:
+      columns: full
+    title: Current Pace
+    subtitle: Payback if this billing-cycle savings pace continues
+  - type: grid
+    grid_options:
+      columns: full
+    columns: 4
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_savings_monthly_projected
+      tap_action:
+        action: more-info
+      name: Projected Monthly Savings
+      icon: mdi:cash-fast
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_savings_projected_vs_average
+      tap_action:
+        action: more-info
+      name: Vs Avg Savings
+      icon: mdi:chart-line
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_breakeven_years_remaining_current_pace
+      tap_action:
+        action: more-info
+      name: Current Pace Years
+      icon: mdi:calendar-range
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_breakeven_date_current_pace
+      tap_action:
+        action: more-info
+      name: Current Pace Date
+      icon: mdi:calendar-check
+- type: grid
+  cards:
+  - type: custom:mushroom-title-card
+    grid_options:
+      columns: full
+    title: Monthly Energy
+    subtitle: This month's generation, use, and grid balance
+  - type: grid
+    grid_options:
+      columns: full
+    columns: 2
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_generated_monthly
+      tap_action:
+        action: more-info
+      name: Solar Generated
+      icon: mdi:solar-power
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.home_load_no_ev_monthly
+      tap_action:
+        action: more-info
+      name: Home No EV
+      icon: mdi:home-remove
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_import_monthly
+      tap_action:
+        action: more-info
+      name: Grid Import
+      icon: mdi:transmission-tower-import
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_total_monthly
+      tap_action:
+        action: more-info
+      name: Grid Export
+      icon: mdi:transmission-tower-export
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_solar_monthly
+      tap_action:
+        action: more-info
+      name: Solar Export
+      icon: mdi:solar-power
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_battery_monthly
+      tap_action:
+        action: more-info
+      name: Battery Export
+      icon: mdi:battery-arrow-down
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_net_usage_monthly
+      tap_action:
+        action: more-info
+      name: Net Grid
+      icon: mdi:transmission-tower
+  - type: custom:mushroom-title-card
+    grid_options:
+      columns: full
+    title: Month-End Projection
+    subtitle: Current month pace carried through month end
+  - type: grid
+    grid_options:
+      columns: full
+    columns: 2
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_generated_monthly_projected
+      tap_action:
+        action: more-info
+      name: Solar Projected
+      icon: mdi:solar-power
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_generated_monthly_forecast_adjusted
+      tap_action:
+        action: more-info
+      name: Solar Forecast Adj
+      icon: mdi:weather-partly-cloudy
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.home_load_no_ev_monthly_projected
+      tap_action:
+        action: more-info
+      name: Home Projected
+      icon: mdi:home-remove
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_import_monthly_projected
+      tap_action:
+        action: more-info
+      name: Import Projected
+      icon: mdi:transmission-tower-import
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_monthly_projected
+      tap_action:
+        action: more-info
+      name: Export Projected
+      icon: mdi:transmission-tower-export
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_net_usage_monthly_projected
+      tap_action:
+        action: more-info
+      name: Net Grid Projected
+      icon: mdi:transmission-tower
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.ev_charging_monthly_projected
+      tap_action:
+        action: more-info
+      name: EV Projected
+      icon: mdi:ev-station
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_monthly_forecast_adjustment
+      tap_action:
+        action: more-info
+      name: Solar Forecast Delta
+      icon: mdi:chart-bell-curve
+- type: grid
+  cards:
+  - type: custom:mushroom-title-card
+    grid_options:
+      columns: full
+    title: Lifetime Solar
+    subtitle: Cumulative generation, use, and exports
+  - type: grid
+    grid_options:
+      columns: full
+    columns: 2
+    square: false
+    cards:
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_generated_lifetime
+      tap_action:
+        action: more-info
+      name: Solar Generated
+      icon: mdi:solar-power
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.solar_self_consumption_lifetime
+      tap_action:
+        action: more-info
+      name: Self Consumption
+      icon: mdi:home-lightning-bolt
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_import_lifetime
+      tap_action:
+        action: more-info
+      name: Grid Import
+      icon: mdi:transmission-tower-import
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_total_lifetime
+      tap_action:
+        action: more-info
+      name: Grid Export
+      icon: mdi:transmission-tower-export
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_solar_lifetime
+      tap_action:
+        action: more-info
+      name: Solar Export
+      icon: mdi:solar-power
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.grid_export_battery_lifetime
+      tap_action:
+        action: more-info
+      name: Battery Export
+      icon: mdi:battery-arrow-down
+    - type: custom:button-card
+      template: insights_metric_tile
+      entity: sensor.home_load_no_ev_lifetime
+      tap_action:
+        action: more-info
+      name: Home No EV
+      icon: mdi:home-remove

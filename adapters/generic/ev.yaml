@@ -1,0 +1,99 @@
+template:
+  - sensor:
+      - name: EV Battery Percent
+        unique_id: generic_ev_battery_percent
+        unit_of_measurement: "%"
+        icon: mdi:battery
+        state: >
+          {{ states('sensor.replace_with_ev_battery_percent') }}
+
+      - name: EV Range
+        unique_id: generic_ev_range
+        unit_of_measurement: "mi"
+        icon: mdi:map-marker-distance
+        state: >
+          {{ states('sensor.replace_with_ev_range') }}
+
+      - name: EV Odometer
+        unique_id: generic_ev_odometer
+        unit_of_measurement: "mi"
+        icon: mdi:counter
+        state: >
+          {{ states('sensor.replace_with_ev_odometer') }}
+
+      - name: EV Charge Limit
+        unique_id: generic_ev_charge_limit
+        unit_of_measurement: "%"
+        icon: mdi:battery-sync
+        state: >
+          {{ states('number.replace_with_ev_charge_limit') }}
+
+      - name: EV Stored Energy
+        unique_id: generic_ev_stored_energy
+        unit_of_measurement: "kWh"
+        device_class: energy
+        icon: mdi:battery-high
+        state: >
+          {% set level = states('sensor.ev_battery_percent') | float(0) %}
+          {% set capacity = states('input_number.ev_battery_capacity_kwh') | float(0) %}
+          {{ (level / 100 * capacity) | round(1) if capacity > 0 else 'unknown' }}
+
+      - name: EV Energy To Target
+        unique_id: generic_ev_energy_to_target
+        unit_of_measurement: "kWh"
+        device_class: energy
+        icon: mdi:battery-arrow-up
+        state: >
+          {% set level = states('sensor.ev_battery_percent') | float(0) %}
+          {% set target = states('sensor.ev_charge_limit') | float(0) %}
+          {% set capacity = states('input_number.ev_battery_capacity_kwh') | float(0) %}
+          {{ ([target - level, 0] | max / 100 * capacity) | round(1) if capacity > 0 else 'unknown' }}
+
+      - name: EV Charging State
+        unique_id: generic_ev_charging_state
+        icon: mdi:ev-plug-type2
+        state: >
+          {{ states('sensor.replace_with_ev_charging_state') }}
+
+      - name: EV Charging Power
+        unique_id: generic_ev_charging_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:ev-station
+        state: >
+          {{ states('sensor.replace_with_ev_charging_power') }}
+
+      - name: EV Charge Current
+        unique_id: generic_ev_charge_current
+        unit_of_measurement: "A"
+        icon: mdi:current-ac
+        state: >
+          {{ states('number.replace_with_ev_charge_current') }}
+
+      - name: EV Time To Full
+        unique_id: generic_ev_time_to_full
+        device_class: timestamp
+        icon: mdi:timer-outline
+        state: >
+          {{ states('sensor.replace_with_ev_time_to_full') }}
+
+      - name: EV Location
+        unique_id: generic_ev_location
+        icon: mdi:car-electric
+        state: >
+          {% set lat = state_attr('device_tracker.replace_with_vehicle_location', 'latitude') %}
+          {% set lon = state_attr('device_tracker.replace_with_vehicle_location', 'longitude') %}
+          {{ 'Located' if lat is not none and lon is not none else 'unknown' }}
+        attributes:
+          latitude: >
+            {{ state_attr('device_tracker.replace_with_vehicle_location', 'latitude') }}
+          longitude: >
+            {{ state_attr('device_tracker.replace_with_vehicle_location', 'longitude') }}
+
+  - binary_sensor:
+      - name: EV Plugged In
+        unique_id: generic_ev_plugged_in
+        icon: mdi:power-plug
+        state: >
+          {{ is_state('binary_sensor.replace_with_ev_plugged_in', 'on') }}

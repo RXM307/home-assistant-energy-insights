@@ -1,0 +1,127 @@
+template:
+  - sensor:
+      - name: EV Battery Percent
+        unique_id: canonical_ev_battery_percent
+        unit_of_measurement: "%"
+        icon: mdi:battery
+        state: >
+          {% set value = states('sensor.your_vehicle_battery_level') %}
+          {{ value if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Range
+        unique_id: canonical_ev_range
+        unit_of_measurement: "mi"
+        icon: mdi:map-marker-distance
+        state: >
+          {% set value = states('sensor.your_vehicle_battery_range') %}
+          {{ (value | float(0)) | round(1) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Odometer
+        unique_id: canonical_ev_odometer
+        unit_of_measurement: "mi"
+        icon: mdi:counter
+        state: >
+          {% set value = states('sensor.your_vehicle_odometer') %}
+          {{ (value | float(0)) | round(1) if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Charge Limit
+        unique_id: canonical_ev_charge_limit
+        unit_of_measurement: "%"
+        icon: mdi:battery-sync
+        state: >
+          {% set limit = states('number.your_vehicle_charge_limit') %}
+          {{ (limit | float(0)) | round(0) if limit not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Stored Energy
+        unique_id: canonical_ev_stored_energy
+        unit_of_measurement: "kWh"
+        device_class: energy
+        icon: mdi:battery-high
+        state: >
+          {% set level = states('sensor.ev_battery_percent') | float(0) %}
+          {% set capacity = states('input_number.ev_battery_capacity_kwh') | float(57) %}
+          {{ (level / 100 * capacity) | round(1) }}
+
+      - name: EV Energy To Target
+        unique_id: canonical_ev_energy_to_target
+        unit_of_measurement: "kWh"
+        device_class: energy
+        icon: mdi:battery-arrow-up
+        state: >
+          {% set level = states('sensor.ev_battery_percent') | float(0) %}
+          {% set target = states('number.your_vehicle_charge_limit') | float(0) %}
+          {% set capacity = states('input_number.ev_battery_capacity_kwh') | float(57) %}
+          {{ ([target - level, 0] | max / 100 * capacity) | round(1) }}
+
+      - name: EV Charging State
+        unique_id: canonical_ev_charging_state
+        icon: mdi:ev-plug-type2
+        state: >
+          {% set state = states('sensor.your_vehicle_charging') %}
+          {{ state if state not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Charging Power
+        unique_id: canonical_ev_charging_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: mdi:ev-station
+        state: >
+          {% set wall = states('sensor.wall_connector_power') %}
+          {% if wall not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            {{ (wall | float(0)) | round(2) }}
+          {% else %}
+            {% set car = states('sensor.your_vehicle_charger_power') %}
+            {{ (car | float(0)) | round(2) if car not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+          {% endif %}
+
+      - name: EV Charge Current
+        unique_id: canonical_ev_charge_current
+        unit_of_measurement: "A"
+        icon: mdi:current-ac
+        state: >
+          {% set current = states('number.your_vehicle_charge_current') %}
+          {{ (current | float(0)) | round(0) if current not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Time To Full
+        unique_id: canonical_ev_time_to_full
+        device_class: timestamp
+        icon: mdi:timer-outline
+        state: >
+          {% set value = states('sensor.your_vehicle_time_to_full_charge') %}
+          {{ value if value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: EV Location
+        unique_id: canonical_ev_location
+        icon: mdi:car-electric
+        state: >
+          {% set lat = state_attr('device_tracker.your_vehicle_location', 'latitude') %}
+          {% set lon = state_attr('device_tracker.your_vehicle_location', 'longitude') %}
+          {{ 'Located' if lat is not none and lon is not none else 'unknown' }}
+        attributes:
+          latitude: >
+            {{ state_attr('device_tracker.your_vehicle_location', 'latitude') }}
+          longitude: >
+            {{ state_attr('device_tracker.your_vehicle_location', 'longitude') }}
+
+  - binary_sensor:
+      - name: EV Plugged In
+        unique_id: canonical_ev_plugged_in
+        icon: mdi:power-plug
+        state: >
+          {{
+            is_state('binary_sensor.tesla_wall_connector_vehicle_connected', 'on')
+            or is_state('binary_sensor.your_vehicle_charge_cable', 'on')
+            or states('sensor.wall_connector_power') | float(0) > 0
+          }}
+
+sensor:
+  - platform: integration
+    source: sensor.ev_charging_power
+    name: EV Charging Energy
+    unique_id: canonical_ev_charging_energy
+    unit_time: h
+    method: left
+    max_sub_interval:
+      minutes: 5
+    round: 3

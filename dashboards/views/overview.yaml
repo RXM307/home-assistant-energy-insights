@@ -1,0 +1,759 @@
+title: Overview
+path: overview
+icon: mdi:view-dashboard
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        title: Energy Now
+        subtitle: Live status, power flow, and daily totals
+
+      - type: conditional
+        conditions:
+          - entity: sensor.grid_status
+            state_not: "on_grid"
+        card:
+          type: markdown
+          content: |
+            ## Off Grid / Islanded
+            The home is not on normal grid power. Check battery level and home load.
+
+      - type: conditional
+        conditions:
+          - entity: binary_sensor.storm_watch_active
+            state: "on"
+        card:
+          type: markdown
+          content: |
+            ## Storm Watch Active
+            Backup reserve behavior may be different while Storm Watch is active.
+
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            entity: binary_sensor.storm_watch_active
+            tap_action:
+              action: more-info
+            icon: mdi:weather-lightning-rainy
+            icon_color: amber
+            content: >-
+              Storm {{ iif(is_state('binary_sensor.storm_watch_active','on'), 'On', 'Off') }}
+          - type: template
+            entity: sensor.home_battery_percent
+            tap_action:
+              action: more-info
+            icon: >-
+              {% set p = states('sensor.home_battery_power') | float(0) %}
+              {{ 'mdi:battery-arrow-up' if p < -0.1 else 'mdi:battery-arrow-down' if p > 0.1 else 'mdi:battery' }}
+            icon_color: >-
+              {% set p = states('sensor.home_battery_power') | float(0) %}
+              {{ 'green' if p < -0.1 else 'teal' if p > 0.1 else 'grey' }}
+            content: >-
+              {{ "%.0f" | format(states('sensor.home_battery_percent') | float(0)) }}%
+          - type: template
+            entity: sensor.grid_net_power
+            tap_action:
+              action: more-info
+            icon: >-
+              {% set island = states('sensor.grid_status') %}
+              {% set p = states('sensor.grid_net_power') | float(0) %}
+              {{ 'mdi:transmission-tower-off' if island != 'on_grid' else 'mdi:transmission-tower-import' if p > 0.1 else 'mdi:transmission-tower-export' if p < -0.1 else 'mdi:transmission-tower' }}
+            icon_color: >-
+              {% set island = states('sensor.grid_status') %}
+              {% set p = states('sensor.grid_net_power') | float(0) %}
+              {{ 'red' if island != 'on_grid' else 'blue' if p > 0.1 else 'teal' if p < -0.1 else 'grey' }}
+            content: >-
+              {% set island = states('sensor.grid_status') %}
+              {% set p = states('sensor.grid_net_power') | float(0) %}
+              {{ 'Off' if island != 'on_grid' else ('Imp ' ~ ("%.1f" | format(p | abs)) if p > 0.1 else 'Exp ' ~ ("%.1f" | format(p | abs)) if p < -0.1 else "%.1f" | format(p | abs)) }}
+          - type: template
+            entity: sensor.ev_charging_power
+            tap_action:
+              action: more-info
+            icon: >-
+              {% set p = states('sensor.ev_charging_power') | float(0) %}
+              {{ 'mdi:ev-station' if p > 0.1 else 'mdi:car-electric' }}
+            icon_color: >-
+              {% set p = states('sensor.ev_charging_power') | float(0) %}
+              {{ 'purple' if p > 0.1 else 'grey' }}
+            content: >-
+              {% set p = states('sensor.ev_charging_power') | float(0) %}
+              {{ 'Chg ' ~ ("%.1f" | format(p)) if p > 0.1 else 'Idle' }}
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.home_solar_power
+            name: Solar Power
+            min: 0
+            max: 10
+            needle: true
+            severity:
+              red: 0
+              yellow: 3
+              green: 7
+          - type: gauge
+            entity: sensor.home_load_no_ev_power
+            name: Home No EV
+            min: 0
+            max: 15
+            needle: true
+            severity:
+              green: 0
+              yellow: 5
+              red: 10
+          - type: gauge
+            entity: sensor.grid_net_power
+            name: Net Grid Power
+            min: -15
+            max: 15
+            needle: true
+            severity:
+              green: -15
+              yellow: -2
+              red: 5
+          - type: gauge
+            entity: sensor.home_battery_power
+            name: Battery Power
+            min: -6
+            max: 12
+            needle: true
+            severity:
+              green: -6
+              yellow: 0
+              red: 3
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.home_load_power
+            name: Home Load
+            min: 0
+            max: 20
+            needle: true
+            severity:
+              green: 0
+              yellow: 7
+              red: 14
+          - type: custom:mushroom-template-card
+            entity: sensor.ev_charging_power
+            tap_action:
+              action: more-info
+            primary: EV Charging
+            secondary: >-
+              {% set power = states('sensor.ev_charging_power') | float(0) %}
+              {% set amps = states('sensor.ev_charge_current') | float(0) %}
+              {{ "%.2f" | format(power) }} kW{% if power > 0.1 and amps > 0 %} / {{ "%.0f" | format(amps) }} A{% endif %} / EV {{ "%.0f" | format(states('sensor.ev_battery_percent') | float(0)) }}%
+            icon: mdi:ev-station
+            icon_color: purple
+            layout: vertical
+          - type: gauge
+            entity: sensor.home_battery_percent
+            name: Battery %
+            min: 0
+            max: 100
+            severity:
+              red: 20
+              yellow: 50
+              green: 80
+
+      - type: custom:mushroom-title-card
+        title: Daily Totals
+        subtitle: Solar, grid, EV, and home mix since midnight
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_generated_daily
+            name: Solar Generated
+            icon: mdi:solar-power
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.solar_self_consumed_daily
+            name: Solar Used
+            icon: mdi:home-lightning-bolt
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.daily_net_export_credit
+            name: Net Export
+            icon: mdi:transmission-tower
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.grid_export_total_daily
+            name: Export
+            icon: mdi:transmission-tower-export
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.home_load_no_ev_daily
+            name: Home No EV
+            icon: mdi:home-remove
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.ev_charging_daily
+            name: EV Charging
+            icon: mdi:ev-station
+            variables:
+              metric_color: "#9b5de5"
+
+      - type: custom:mushroom-title-card
+        title: Billing Snapshot
+        subtitle: Current bill, daily net, and annual credit bank
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_actual_total
+            name: Current Bill
+            icon: mdi:receipt-text
+            variables:
+              metric_color: "#f94144"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.daily_net_grid_cost
+            name: Today Net
+            icon: mdi:cash-clock
+            variables:
+              metric_color_key: cost
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.annual_net_export_credit_value
+            name: Annual Credit Value
+            icon: mdi:cash-plus
+            variables:
+              metric_color: "#90be6d"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.annual_net_export_credit
+            name: Annual Credit Bank
+            icon: mdi:battery-medium
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.billing_cost_actual_projected
+            name: Projected Bill
+            icon: mdi:cash-clock
+            variables:
+              metric_color: "#f3722c"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_billing_cycle_days_remaining
+            name: Cycle Days Left
+            icon: mdi:calendar-end
+            variables:
+              metric_color: "#577590"
+
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        title: Battery Runtime
+        subtitle: Reserve, empty, and recharge timing
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: custom:mushroom-template-card
+            entity: sensor.battery_runtime_to_backup_reserve_hours
+            primary: To Backup Reserve
+            secondary: >-
+              {% set raw = states('sensor.battery_runtime_to_backup_reserve_hours') %}
+              {% set eta = states('sensor.battery_runtime_to_backup_reserve_eta') %}
+              {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+                {% set mins = (raw | float(0) * 60) | round(0) | int %}
+                {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+              {% elif states('sensor.home_battery_power') | float(0) <= 0.1 %}
+                Not discharging
+              {% else %}
+                Reserve met
+              {% endif %}
+            icon: mdi:battery-lock
+            icon_color: green
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.battery_runtime_to_empty_hours
+            primary: To Empty
+            secondary: >-
+              {% set raw = states('sensor.battery_runtime_to_empty_hours') %}
+              {% set eta = states('sensor.battery_runtime_to_empty_eta') %}
+              {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+                {% set mins = (raw | float(0) * 60) | round(0) | int %}
+                {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+              {% else %}
+                Not discharging
+              {% endif %}
+            icon: mdi:battery-alert
+            icon_color: red
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.battery_runtime_to_full_hours
+            primary: To 100%
+            secondary: >-
+              {% set raw = states('sensor.battery_runtime_to_full_hours') %}
+              {% set eta = states('sensor.battery_runtime_to_full_eta') %}
+              {% if raw not in ['unknown', 'unavailable', 'none', 'None', ''] %}
+                {% set mins = (raw | float(0) * 60) | round(0) | int %}
+                {{ mins // 60 }}h {{ mins % 60 }}m / {{ as_timestamp(eta) | timestamp_custom('%I:%M %p') }}
+              {% elif states('sensor.home_battery_power') | float(0) >= -0.1 %}
+                Not charging
+              {% else %}
+                Full
+              {% endif %}
+            icon: mdi:battery-charging-high
+            icon_color: green
+            layout: vertical
+
+      - type: custom:mushroom-title-card
+        title: Today's Mix
+        subtitle: Home No EV source split
+
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            entity: sensor.home_no_ev_mix_solar_daily_percent
+            icon: mdi:solar-power
+            icon_color: amber
+            content: >-
+              Solar {{ states('sensor.home_no_ev_mix_solar_daily_percent') }}%
+          - type: template
+            entity: sensor.home_no_ev_mix_battery_daily_percent
+            icon: mdi:battery
+            icon_color: green
+            content: >-
+              Battery {{ states('sensor.home_no_ev_mix_battery_daily_percent') }}%
+          - type: template
+            entity: sensor.home_no_ev_mix_grid_daily_percent
+            icon: mdi:transmission-tower
+            icon_color: blue
+            content: >-
+              Grid {{ states('sensor.home_no_ev_mix_grid_daily_percent') }}%
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.home_no_ev_solar_backed_daily
+            name: Solar
+            icon: mdi:solar-power
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.home_no_ev_battery_backed_daily
+            name: Battery
+            icon: mdi:battery-arrow-down
+            variables:
+              metric_color: "#4d908e"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.home_no_ev_grid_daily
+            name: Grid
+            icon: mdi:transmission-tower
+            variables:
+              metric_color: "#277da1"
+
+      - type: custom:mushroom-title-card
+        title: Today's Peaks
+        subtitle: Highest power seen today
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: custom:mushroom-template-card
+            entity: sensor.peak_solar_power_daily
+            tap_action:
+              action: more-info
+            primary: Solar Peak
+            secondary: >-
+              {{ "%.2f" | format(states('sensor.peak_solar_power_daily') | float(0)) }} kW
+            icon: mdi:solar-power
+            icon_color: amber
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.peak_home_load_no_ev_daily
+            tap_action:
+              action: more-info
+            primary: Home No EV Peak
+            secondary: >-
+              {{ "%.2f" | format(states('sensor.peak_home_load_no_ev_daily') | float(0)) }} kW
+            icon: mdi:home-remove
+            icon_color: red
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.peak_grid_import_power_daily
+            tap_action:
+              action: more-info
+            primary: Grid Import Peak
+            secondary: >-
+              {{ "%.2f" | format(states('sensor.peak_grid_import_power_daily') | float(0)) }} kW
+            icon: mdi:transmission-tower-import
+            icon_color: blue
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.peak_grid_export_power_daily
+            tap_action:
+              action: more-info
+            primary: Grid Export Peak
+            secondary: >-
+              {{ "%.2f" | format(states('sensor.peak_grid_export_power_daily') | float(0)) }} kW
+            icon: mdi:transmission-tower-export
+            icon_color: teal
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.peak_battery_charge_power_daily
+            tap_action:
+              action: more-info
+            primary: Battery Charge Peak
+            secondary: >-
+              {{ "%.2f" | format(states('sensor.peak_battery_charge_power_daily') | float(0)) }} kW
+            icon: mdi:battery-arrow-up
+            icon_color: green
+            layout: vertical
+          - type: custom:mushroom-template-card
+            entity: sensor.peak_ev_charging_power_daily
+            tap_action:
+              action: more-info
+            primary: EV Peak
+            secondary: >-
+              {{ "%.2f" | format(states('sensor.peak_ev_charging_power_daily') | float(0)) }} kW
+            icon: mdi:ev-station
+            icon_color: purple
+            layout: vertical
+
+      - type: weather-forecast
+        entity: weather.forecast_home
+        name: Today
+        forecast_type: daily
+        show_forecast: true
+
+      - type: custom:mushroom-title-card
+        title: Solar Forecast
+        subtitle: Production estimates and peak timing
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_production_today
+            name: Estimated Today
+            icon: mdi:solar-power
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_production_today_remaining
+            name: Remaining Today
+            icon: mdi:weather-sunset
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_production_tomorrow
+            name: Tomorrow
+            icon: mdi:calendar-tomorrow
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_current_hour
+            name: This Hour
+            icon: mdi:clock-outline
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.energy_next_hour
+            name: Next Hour
+            icon: mdi:clock-plus-outline
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.power_production_now
+            name: Power Now
+            icon: mdi:flash
+            variables:
+              metric_color: "#f9c74f"
+          - type: custom:button-card
+            template: insights_metric_tile
+            entity: sensor.power_highest_peak_time_today
+            name: Peak Time
+            icon: mdi:chart-bell-curve
+            variables:
+              metric_color: "#f9c74f"
+            custom_fields:
+              value: >-
+                [[[
+                  const defaults = new Set(["", "unknown", "unavailable", "none", "None", "null"]);
+                  const attrs = entity?.attributes || {};
+                  const candidates = [
+                    entity?.state,
+                    attrs.datetime,
+                    attrs.time,
+                    attrs.peak_time,
+                    attrs.highest_peak_time,
+                    attrs.next_peak_time,
+                    attrs.start,
+                  ].filter((v) => v !== undefined && v !== null && !defaults.has(String(v)));
+
+                  const parseTime = (raw) => {
+                    const value = String(raw).trim();
+                    let parsed = new Date(value);
+                    if (!Number.isNaN(parsed.getTime())) return parsed;
+
+                    const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                    if (timeMatch) {
+                      parsed = new Date();
+                      parsed.setHours(Number(timeMatch[1]), Number(timeMatch[2]), Number(timeMatch[3] || 0), 0);
+                      return parsed;
+                    }
+
+                    const amPmMatch = value.match(/^(\d{1,2}):(\d{2})\s*([ap]m)$/i);
+                    if (amPmMatch) {
+                      let hours = Number(amPmMatch[1]) % 12;
+                      if (amPmMatch[3].toLowerCase() === "pm") hours += 12;
+                      parsed = new Date();
+                      parsed.setHours(hours, Number(amPmMatch[2]), 0, 0);
+                      return parsed;
+                    }
+
+                    return null;
+                  };
+
+                  const peak = candidates.map(parseTime).find((date) => date && !Number.isNaN(date.getTime()));
+                  if (!peak) return candidates[0] ? String(candidates[0]).replaceAll("_", " ") : "n/a";
+
+                  const diffMs = peak.getTime() - Date.now();
+                  const absMinutes = Math.round(Math.abs(diffMs) / 60000);
+                  const hours = Math.floor(absMinutes / 60);
+                  const minutes = absMinutes % 60;
+                  const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                  const relative = absMinutes <= 2 ? "now" : diffMs > 0 ? `in ${duration}` : `${duration} ago`;
+                  const clock = peak.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                  return `${relative} (${clock})`;
+                ]]]
+
+      - type: custom:mushroom-title-card
+        title: Live Flow Trends
+        subtitle: Recent power behavior
+
+      - type: custom:apexcharts-card
+        section_mode: true
+        header:
+          show: true
+          title: Solar, Home, and EV, 24h
+          show_states: true
+        graph_span: 24h
+        apex_config:
+          chart:
+            height: 340px
+          colors:
+            - "#f9c74f"
+            - "#f94144"
+            - "#9b5de5"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          stroke:
+            curve: smooth
+          markers:
+            size: 0
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 4
+            labels:
+              show: true
+              rotate: -30
+              minHeight: 56
+              maxHeight: 80
+              offsetY: 10
+              hideOverlappingLabels: true
+              trim: true
+              datetimeUTC: false
+              datetimeFormatter:
+                hour: HH:mm
+                day: MMM d
+        all_series_config:
+          stroke_width: 3
+          float_precision: 2
+        series:
+          - entity: sensor.home_solar_power
+            name: Solar
+            color: "#f9c74f"
+            type: area
+            group_by:
+              func: avg
+              duration: 5min
+          - entity: sensor.home_load_no_ev_power
+            name: Home No EV
+            color: "#f94144"
+            type: line
+            group_by:
+              func: avg
+              duration: 5min
+          - entity: sensor.ev_charging_power
+            name: EV
+            color: "#9b5de5"
+            type: line
+            group_by:
+              func: avg
+              duration: 5min
+
+      - type: custom:apexcharts-card
+        section_mode: true
+        header:
+          show: true
+          title: Grid and Battery Flow, 24h
+          show_states: true
+        graph_span: 24h
+        apex_config:
+          chart:
+            height: 340px
+          colors:
+            - "#277da1"
+            - "#43aa8b"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          stroke:
+            curve: smooth
+          markers:
+            size: 0
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 4
+            labels:
+              show: true
+              rotate: -30
+              minHeight: 56
+              maxHeight: 80
+              offsetY: 10
+              hideOverlappingLabels: true
+              trim: true
+              datetimeUTC: false
+              datetimeFormatter:
+                hour: HH:mm
+                day: MMM d
+        all_series_config:
+          stroke_width: 3
+          float_precision: 2
+        series:
+          - entity: sensor.grid_net_power
+            name: Grid
+            color: "#277da1"
+            type: area
+            yaxis_id: power
+            group_by:
+              func: avg
+              duration: 5min
+          - entity: sensor.home_battery_power
+            name: Battery
+            color: "#43aa8b"
+            type: line
+            yaxis_id: power
+            group_by:
+              func: avg
+              duration: 5min
+        yaxis:
+          - id: power
+            min: -8
+            max: 8
+            decimals: 2
+
+      - type: custom:apexcharts-card
+        section_mode: true
+        header:
+          show: true
+          title: Home No EV Source, 30d
+          show_states: true
+        graph_span: 30d
+        span:
+          end: day
+        stacked: true
+        apex_config:
+          chart:
+            height: 320px
+          colors:
+            - "#f9c74f"
+            - "#4d908e"
+            - "#277da1"
+            - "#f94144"
+          legend:
+            show: true
+            position: top
+            horizontalAlign: left
+          grid:
+            padding:
+              bottom: 72
+          xaxis:
+            type: datetime
+            tickAmount: 4
+            labels:
+              rotate: -30
+              minHeight: 56
+              datetimeUTC: false
+              datetimeFormatter:
+                day: MMM d
+                month: MMM yyyy
+        series:
+          - entity: sensor.home_no_ev_solar_backed_daily
+            name: Solar
+            type: column
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.home_no_ev_battery_backed_daily
+            name: Battery
+            type: column
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.home_no_ev_grid_daily
+            name: Grid
+            type: column
+            group_by:
+              func: last
+              duration: 1d
+          - entity: sensor.home_load_no_ev_daily
+            name: Home No EV
+            type: line
+            group_by:
+              func: last
+              duration: 1d

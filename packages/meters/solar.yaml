@@ -1,0 +1,28 @@
+utility_meter:
+  solar_generated_daily:
+    source: sensor.solar_generated_lifetime
+    cycle: daily
+
+  solar_generated_monthly:
+    source: sensor.solar_generated_lifetime
+    cycle: monthly
+
+  solar_generated_billing:
+    source: sensor.solar_generated_lifetime
+
+  solar_generated_yearly:
+    source: sensor.solar_generated_lifetime
+    cycle: yearly
+
+  solar_savings_daily:
+    source: sensor.solar_savings_lifetime
+    cycle: daily
+
+  solar_savings_monthly:
+    source: sensor.solar_savings_lifetime
+    cycle: monthly
+
+  solar_savings_yearly:
+    source: sensor.solar_savings_lifetime
+    cycle: yearly
+

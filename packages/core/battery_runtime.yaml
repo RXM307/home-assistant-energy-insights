@@ -1,0 +1,115 @@
+template:
+  - sensor:
+      - name: Battery Runtime To Empty Hours
+        unique_id: battery_runtime_to_empty_hours
+        unit_of_measurement: h
+        device_class: duration
+        state_class: measurement
+        icon: mdi:battery-alert
+        state: >
+          {% set soc = states('sensor.home_battery_percent') | float(0) %}
+          {% set power = states('sensor.home_battery_power') | float(0) %}
+          {% set capacity = states('input_number.home_battery_usable_capacity_kwh') | float(27) %}
+          {% if power > 0.1 and soc > 0 and capacity > 0 %}
+            {{ ((soc / 100 * capacity) / power) | round(2) }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Battery Runtime To 20 Percent Hours
+        unique_id: battery_runtime_to_20_percent_hours
+        unit_of_measurement: h
+        device_class: duration
+        state_class: measurement
+        icon: mdi:battery-20
+        state: >
+          {% set soc = states('sensor.home_battery_percent') | float(0) %}
+          {% set power = states('sensor.home_battery_power') | float(0) %}
+          {% set capacity = states('input_number.home_battery_usable_capacity_kwh') | float(27) %}
+          {% set target = 20 %}
+          {% if power > 0.1 and soc > target and capacity > 0 %}
+            {{ (((soc - target) / 100 * capacity) / power) | round(2) }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Battery Runtime To Backup Reserve Hours
+        unique_id: battery_runtime_to_backup_reserve_hours
+        unit_of_measurement: h
+        device_class: duration
+        state_class: measurement
+        icon: mdi:battery-lock
+        state: >
+          {% set soc = states('sensor.home_battery_percent') | float(0) %}
+          {% set power = states('sensor.home_battery_power') | float(0) %}
+          {% set capacity = states('input_number.home_battery_usable_capacity_kwh') | float(27) %}
+          {% set target = states('input_number.home_battery_backup_reserve_percent') | float(20) %}
+          {% if power > 0.1 and soc > target and capacity > 0 %}
+            {{ (((soc - target) / 100 * capacity) / power) | round(2) }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Battery Runtime To Full Hours
+        unique_id: battery_runtime_to_full_hours
+        unit_of_measurement: h
+        device_class: duration
+        state_class: measurement
+        icon: mdi:battery-charging-high
+        state: >
+          {% set soc = states('sensor.home_battery_percent') | float(0) %}
+          {% set power = states('sensor.home_battery_power') | float(0) %}
+          {% set capacity = states('input_number.home_battery_usable_capacity_kwh') | float(27) %}
+          {% if power < -0.1 and soc < 100 and capacity > 0 %}
+            {{ (((100 - soc) / 100 * capacity) / (power | abs)) | round(2) }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Battery Runtime To Empty ETA
+        unique_id: battery_runtime_to_empty_eta
+        device_class: timestamp
+        icon: mdi:clock-alert
+        state: >
+          {% set hours = states('sensor.battery_runtime_to_empty_hours') %}
+          {% if is_number(hours) %}
+            {{ (now() + timedelta(hours=hours | float(0))).isoformat() }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Battery Runtime To 20 Percent ETA
+        unique_id: battery_runtime_to_20_percent_eta
+        device_class: timestamp
+        icon: mdi:clock-alert
+        state: >
+          {% set hours = states('sensor.battery_runtime_to_20_percent_hours') %}
+          {% if is_number(hours) %}
+            {{ (now() + timedelta(hours=hours | float(0))).isoformat() }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Battery Runtime To Backup Reserve ETA
+        unique_id: battery_runtime_to_backup_reserve_eta
+        device_class: timestamp
+        icon: mdi:clock-alert
+        state: >
+          {% set hours = states('sensor.battery_runtime_to_backup_reserve_hours') %}
+          {% if is_number(hours) %}
+            {{ (now() + timedelta(hours=hours | float(0))).isoformat() }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Battery Runtime To Full ETA
+        unique_id: battery_runtime_to_full_eta
+        device_class: timestamp
+        icon: mdi:clock-alert
+        state: >
+          {% set hours = states('sensor.battery_runtime_to_full_hours') %}
+          {% if is_number(hours) %}
+            {{ (now() + timedelta(hours=hours | float(0))).isoformat() }}
+          {% else %}
+            unknown
+          {% endif %}

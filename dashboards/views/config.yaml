@@ -1,0 +1,130 @@
+title: Config
+path: config
+icon: mdi:cog
+type: sections
+max_columns: 2
+sections:
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        title: Billing Config
+        subtitle: Rates, billing cycle, and forecast timing
+
+      - type: entities
+        title: Billing Inputs
+        show_header_toggle: false
+        entities:
+          - entity: input_number.billing_tier_1_limit_kwh
+            name: Tier 1 Limit
+          - entity: input_number.billing_tier_1_rate
+            name: Tier 1 Rate
+          - entity: input_number.billing_tier_2_rate
+            name: Tier 2 Rate
+          - entity: input_number.billing_program_charge_rate
+            name: Program Charge
+          - entity: input_number.billing_power_cost_adjustment_rate
+            name: Power Cost Adjustment
+          - entity: input_number.billing_basic_charge
+            name: Basic Charge
+          - entity: input_number.billing_tax_rate
+            name: Tax Rate
+          - entity: input_datetime.energy_billing_cycle_start
+            name: Billing Cycle Start
+          - entity: input_number.energy_billing_cycle_length_days
+            name: Billing Cycle Length
+          - entity: input_number.energy_forecast_min_elapsed_days
+            name: Forecast Minimum Days
+
+      - type: entities
+        title: Annual True-Up Inputs
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.annual_trueup_auto_reset_enabled
+            name: Auto Reset Annual Credit Bank
+          - entity: input_number.annual_trueup_reset_month
+            name: Reset Month
+          - entity: input_number.annual_trueup_reset_day
+            name: Reset Day
+          - entity: script.reset_annual_trueup_credit_bank
+            name: Reset Annual Credit Bank Now
+
+      - type: entities
+        title: Forecast Status
+        show_header_toggle: false
+        entities:
+          - entity: automation.auto_reset_energy_billing_cycle
+            name: Auto Billing Reset
+          - entity: sensor.energy_billing_cycle_day
+            name: Billing Cycle Day
+          - entity: sensor.energy_billing_cycle_days_remaining
+            name: Billing Days Remaining
+          - entity: sensor.energy_month_days_remaining
+            name: Month Days Remaining
+          - entity: sensor.energy_forecast_confidence
+            name: Forecast Confidence
+          - entity: sensor.billing_forecast_status
+            name: Billing Forecast Status
+          - entity: sensor.monthly_forecast_status
+            name: Monthly Forecast Status
+
+      - type: button
+        name: Reset Billing Cycle
+        icon: mdi:refresh
+        tap_action:
+          action: call-service
+          service: script.reset_billing_cycle
+          confirmation:
+            text: Are you sure you want to reset the billing cycle?
+
+  - type: grid
+    cards:
+      - type: custom:mushroom-title-card
+        title: Energy + EV Config
+        subtitle: Battery, EV, ROI, and VPP assumptions
+
+      - type: entities
+        title: Battery + EV Inputs
+        show_header_toggle: false
+        entities:
+          - entity: input_number.home_battery_usable_capacity_kwh
+            name: Home Battery Usable Capacity
+          - entity: input_number.home_battery_backup_reserve_percent
+            name: Home Battery Backup Reserve
+          - entity: input_number.ev_battery_capacity_kwh
+            name: EV Battery Capacity
+          - entity: input_number.ev_miles_per_kwh
+            name: EV Miles per kWh
+          - entity: input_number.gas_car_mpg
+            name: Gas Car MPG
+          - entity: input_number.gas_price_per_gallon
+            name: Gas Price per Gallon
+
+      - type: entities
+        title: ROI + VPP Inputs
+        show_header_toggle: false
+        entities:
+          - entity: input_datetime.solar_install_date
+            name: Solar Install Date
+          - entity: input_number.solar_system_net_cost
+            name: Solar System Net Cost
+          - entity: input_number.battery_net_cost
+            name: Battery Net Cost
+          - entity: input_number.vpp_rebate_amount
+            name: VPP Rebate Amount
+          - entity: input_number.vpp_rate_per_kwh
+            name: VPP Rate per kWh
+          - entity: input_number.vpp_energy_lifetime
+            name: VPP Energy Lifetime
+          - entity: input_number.vpp_last_event_energy
+            name: VPP Last Event Energy
+
+      - type: entities
+        title: Key Derived Rates
+        show_header_toggle: false
+        entities:
+          - entity: sensor.billing_marginal_electricity_rate
+            name: Marginal Electricity Rate
+          - entity: sensor.billing_effective_total_rate
+            name: Effective Total Rate
+          - entity: sensor.vpp_earnings_average_monthly
+            name: VPP Avg Monthly

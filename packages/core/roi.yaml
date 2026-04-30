@@ -1,0 +1,135 @@
+template:
+  - sensor:
+      - name: Variable Charge Without Solar Lifetime
+        unique_id: variable_charge_without_solar_lifetime
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {% set usage = states('sensor.home_load_lifetime') | float(0) %}
+          {% set tier1_limit = states('input_number.billing_tier_1_limit_kwh') | float(600) %}
+          {% set tier1_rate = states('input_number.billing_tier_1_rate') | float(0) %}
+          {% set tier2_rate = states('input_number.billing_tier_2_rate') | float(0) %}
+          {% set program = states('input_number.billing_program_charge_rate') | float(0) %}
+          {% set pca = states('input_number.billing_power_cost_adjustment_rate') | float(0) %}
+
+          {% if usage <= tier1_limit %}
+            {% set energy = usage * tier1_rate %}
+          {% else %}
+            {% set energy = tier1_limit * tier1_rate + (usage - tier1_limit) * tier2_rate %}
+          {% endif %}
+
+          {{ (energy + usage * program + usage * pca) | round(2) }}
+
+      - name: Variable Charge Actual Lifetime
+        unique_id: variable_charge_actual_lifetime
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {% set net = states('sensor.grid_net_usage_lifetime') | float(0) %}
+          {% set usage = [net, 0] | max %}
+          {% set tier1_limit = states('input_number.billing_tier_1_limit_kwh') | float(600) %}
+          {% set tier1_rate = states('input_number.billing_tier_1_rate') | float(0) %}
+          {% set tier2_rate = states('input_number.billing_tier_2_rate') | float(0) %}
+          {% set program = states('input_number.billing_program_charge_rate') | float(0) %}
+          {% set pca = states('input_number.billing_power_cost_adjustment_rate') | float(0) %}
+
+          {% if usage <= tier1_limit %}
+            {% set energy = usage * tier1_rate %}
+          {% else %}
+            {% set energy = tier1_limit * tier1_rate + (usage - tier1_limit) * tier2_rate %}
+          {% endif %}
+
+          {{ (energy + usage * program + usage * pca) | round(2) }}
+
+      - name: Solar Savings Lifetime
+        unique_id: solar_savings_lifetime
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {{
+            (
+              states('sensor.variable_charge_without_solar_lifetime') | float(0) -
+              states('sensor.variable_charge_actual_lifetime') | float(0)
+            ) | round(2)
+          }}
+
+      - name: Solar Breakeven Remaining
+        unique_id: solar_breakeven_remaining
+        unit_of_measurement: "$"
+        device_class: monetary
+        state_class: measurement
+        state: >
+          {% set cost = states('input_number.solar_system_net_cost') | float(0) %}
+          {% set saved = states('sensor.solar_savings_lifetime') | float(0) %}
+          {{ [cost - saved, 0] | max | round(2) if cost > 0 else 'unknown' }}
+
+      - name: Solar Savings Average Monthly
+        unique_id: solar_savings_average_monthly
+        unit_of_measurement: "$/mo"
+        state_class: measurement
+        icon: mdi:calendar-month
+        state: >
+          {% set saved = states('sensor.solar_savings_lifetime') | float(0) %}
+          {% set install = states('input_datetime.solar_install_date') %}
+          {% if install in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            0
+          {% else %}
+            {% set days = ((as_timestamp(now()) - as_timestamp(install)) / 86400) %}
+            {% set months = [days / 30.4375, 1] | max %}
+            {{ (saved / months) | round(2) }}
+          {% endif %}
+
+      - name: Solar Breakeven Months Remaining
+        unique_id: solar_breakeven_months_remaining
+        unit_of_measurement: "mo"
+        state_class: measurement
+        icon: mdi:calendar-clock
+        state: >
+          {% set remaining_value = states('sensor.solar_breakeven_remaining') %}
+          {% set average = states('sensor.solar_savings_average_monthly') | float(0) %}
+          {% if remaining_value in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            unknown
+          {% else %}
+            {% set remaining = remaining_value | float(0) %}
+            {{ (remaining / average) | round(1) if remaining > 0 and average > 0 else 0 }}
+          {% endif %}
+
+      - name: Solar Breakeven Progress
+        unique_id: solar_breakeven_progress
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:chart-arc
+        state: >
+          {% set cost = states('input_number.solar_system_net_cost') | float(0) %}
+          {% set saved = states('sensor.solar_savings_lifetime') | float(0) %}
+          {% if cost > 0 %}
+            {{ ([saved / cost * 100, 100] | min) | round(1) }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Solar Breakeven Years Remaining
+        unique_id: solar_breakeven_years_remaining
+        unit_of_measurement: "yr"
+        state_class: measurement
+        icon: mdi:calendar-range
+        state: >
+          {% set months_value = states('sensor.solar_breakeven_months_remaining') %}
+          {{ (months_value | float(0) / 12) | round(1) if months_value not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
+
+      - name: Solar Breakeven Date
+        unique_id: solar_breakeven_date
+        icon: mdi:calendar-check
+        state: >
+          {% set months_value = states('sensor.solar_breakeven_months_remaining') %}
+          {% if months_value in ['unknown', 'unavailable', 'none', 'None', ''] %}
+            unknown
+          {% elif months_value | float(0) > 0 %}
+            {% set days = months_value | float(0) * 30.4375 %}
+            {{ (now().timestamp() + days * 86400) | timestamp_custom('%Y-%m-%d', true) }}
+          {% else %}
+            paid_off
+          {% endif %}

@@ -1,0 +1,160 @@
+template:
+  - sensor:
+      - name: Solar Self Consumed Daily
+        unique_id: solar_self_consumed_daily
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {% set generated = states('sensor.solar_generated_daily') | float(0) %}
+          {% set exported = states('sensor.grid_export_solar_daily') | float(0) %}
+          {{ [generated - exported, 0] | max | round(2) }}
+
+      - name: Battery Self Consumed Daily
+        unique_id: battery_self_consumed_daily
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:battery-arrow-down
+        state: >
+          {% set discharged = states('sensor.battery_discharged_daily') | float(0) %}
+          {% set exported = states('sensor.grid_export_battery_daily') | float(0) %}
+          {{ [discharged - exported, 0] | max | round(2) }}
+
+      - name: Solar Self Consumption Lifetime
+        unique_id: solar_self_consumption_lifetime
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:home-lightning-bolt
+        state: >
+          {% set generated = states('sensor.solar_generated_lifetime') | float(0) %}
+          {% set exported = states('sensor.grid_export_solar_lifetime') | float(0) %}
+          {{ [generated - exported, 0] | max | round(2) }}
+
+      - name: Home No EV Solar Backed Daily
+        unique_id: home_no_ev_solar_backed_daily
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {% set solar = states('sensor.solar_self_consumed_daily') | float(0) %}
+          {% set ev_solar = states('sensor.ev_solar_backed_daily') | float(0) %}
+          {% set battery_charge = states('sensor.battery_charged_from_solar_daily') | float(0) %}
+          {{ [solar - ev_solar - battery_charge, 0] | max | round(2) }}
+
+      - name: Home No EV Battery Backed Daily
+        unique_id: home_no_ev_battery_backed_daily
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:battery-arrow-down
+        state: >
+          {{ states('sensor.battery_self_consumed_daily') | float(0) | round(2) }}
+
+      - name: Home No EV Grid Daily
+        unique_id: home_no_ev_grid_daily
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set total = states('sensor.home_load_no_ev_daily') | float(0) %}
+          {% set solar = states('sensor.home_no_ev_solar_backed_daily') | float(0) %}
+          {% set battery = states('sensor.home_no_ev_battery_backed_daily') | float(0) %}
+          {{ (total - solar - battery) | round(2) }}
+
+      - name: Home No EV Mix Solar Daily Percent
+        unique_id: home_no_ev_mix_solar_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {% set solar = states('sensor.home_no_ev_solar_backed_daily') | float(0) %}
+          {% set battery = states('sensor.home_no_ev_battery_backed_daily') | float(0) %}
+          {% set grid = states('sensor.home_no_ev_grid_daily') | float(0) %}
+          {% set total = solar + battery + grid %}
+          {{ (solar / total * 100) | round(1) if total > 0 else 0 }}
+
+      - name: Home No EV Mix Battery Daily Percent
+        unique_id: home_no_ev_mix_battery_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:battery
+        state: >
+          {% set solar = states('sensor.home_no_ev_solar_backed_daily') | float(0) %}
+          {% set battery = states('sensor.home_no_ev_battery_backed_daily') | float(0) %}
+          {% set grid = states('sensor.home_no_ev_grid_daily') | float(0) %}
+          {% set total = solar + battery + grid %}
+          {{ (battery / total * 100) | round(1) if total > 0 else 0 }}
+
+      - name: Home No EV Mix Grid Daily Percent
+        unique_id: home_no_ev_mix_grid_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set solar = states('sensor.home_no_ev_solar_backed_daily') | float(0) %}
+          {% set battery = states('sensor.home_no_ev_battery_backed_daily') | float(0) %}
+          {% set grid = states('sensor.home_no_ev_grid_daily') | float(0) %}
+          {% set total = solar + battery + grid %}
+          {{ (grid / total * 100) | round(1) if total > 0 else 0 }}
+
+      - name: Consumed Energy Mix Solar Daily Percent
+        unique_id: consumed_energy_mix_solar_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {% set solar = states('sensor.solar_self_consumed_daily') | float(0) %}
+          {% set battery = states('sensor.battery_self_consumed_daily') | float(0) %}
+          {% set grid = [states('sensor.grid_net_usage_daily') | float(0), 0] | max %}
+          {% set total = solar + battery + grid %}
+          {{ (solar / total * 100) | round(1) if total > 0 else 0 }}
+
+      - name: Consumed Energy Mix Battery Daily Percent
+        unique_id: consumed_energy_mix_battery_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:battery
+        state: >
+          {% set solar = states('sensor.solar_self_consumed_daily') | float(0) %}
+          {% set battery = states('sensor.battery_self_consumed_daily') | float(0) %}
+          {% set grid = [states('sensor.grid_net_usage_daily') | float(0), 0] | max %}
+          {% set total = solar + battery + grid %}
+          {{ (battery / total * 100) | round(1) if total > 0 else 0 }}
+
+      - name: Consumed Energy Mix Grid Daily Percent
+        unique_id: consumed_energy_mix_grid_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: >
+          {% set solar = states('sensor.solar_self_consumed_daily') | float(0) %}
+          {% set battery = states('sensor.battery_self_consumed_daily') | float(0) %}
+          {% set grid = [states('sensor.grid_net_usage_daily') | float(0), 0] | max %}
+          {% set total = solar + battery + grid %}
+          {{ (grid / total * 100) | round(1) if total > 0 else 0 }}
+
+      - name: Energy Mix Solar Daily Percent
+        unique_id: energy_mix_solar_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:solar-power
+        state: "{{ states('sensor.consumed_energy_mix_solar_daily_percent') }}"
+
+      - name: Energy Mix Battery Daily Percent
+        unique_id: energy_mix_battery_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:battery
+        state: "{{ states('sensor.consumed_energy_mix_battery_daily_percent') }}"
+
+      - name: Energy Mix Grid Daily Percent
+        unique_id: energy_mix_grid_daily_percent
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:transmission-tower
+        state: "{{ states('sensor.consumed_energy_mix_grid_daily_percent') }}"
