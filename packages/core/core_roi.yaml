@@ -4,7 +4,7 @@ template:
         unique_id: variable_charge_without_solar_lifetime
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set usage = states('sensor.home_load_lifetime') | float(0) %}
           {% set tier1_limit = states('input_number.billing_tier_1_limit_kwh') | float(600) %}
@@ -25,7 +25,7 @@ template:
         unique_id: variable_charge_actual_lifetime
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set net = states('sensor.grid_net_usage_lifetime') | float(0) %}
           {% set usage = [net, 0] | max %}
@@ -47,7 +47,7 @@ template:
         unique_id: solar_savings_lifetime
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {{
             (
@@ -60,7 +60,7 @@ template:
         unique_id: solar_breakeven_remaining
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set cost = states('input_number.solar_system_net_cost') | float(0) %}
           {% set saved = states('sensor.solar_savings_lifetime') | float(0) %}

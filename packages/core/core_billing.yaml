@@ -4,7 +4,7 @@ template:
         unique_id: billing_variable_charge_actual_pretax
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set net = states('sensor.grid_net_billing') | float(0) %}
           {% set billed = [net, 0] | max %}
@@ -32,7 +32,7 @@ template:
         unique_id: billing_cost_actual_pretax
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {{
             (
@@ -45,7 +45,7 @@ template:
         unique_id: billing_cost_actual_total
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set pretax = states('sensor.billing_cost_actual_pretax') | float(0) %}
           {% set tax = states('input_number.billing_tax_rate') | float(0) %}
@@ -55,7 +55,7 @@ template:
         unique_id: billing_cost_without_solar_pretax
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set usage = states('sensor.home_load_billing') | float(0) %}
           {% set tier1_limit = states('input_number.billing_tier_1_limit_kwh') | float(600) %}
@@ -84,7 +84,7 @@ template:
         unique_id: billing_cost_without_solar_total
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set pretax = states('sensor.billing_cost_without_solar_pretax') | float(0) %}
           {% set tax = states('input_number.billing_tax_rate') | float(0) %}
@@ -94,7 +94,7 @@ template:
         unique_id: billing_solar_savings_total
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {{
             (

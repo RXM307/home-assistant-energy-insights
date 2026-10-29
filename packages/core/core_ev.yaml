@@ -67,7 +67,7 @@ template:
         unique_id: ev_home_charging_cost_monthly
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         icon: mdi:cash
         state: >
           {% set kwh = states('sensor.ev_charging_monthly') | float(0) %}
@@ -78,7 +78,7 @@ template:
         unique_id: ev_home_charging_gas_equivalent_monthly
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         icon: mdi:gas-station
         state: >
           {% set kwh = states('sensor.ev_charging_monthly') | float(0) %}
@@ -91,7 +91,7 @@ template:
         unique_id: ev_home_charging_savings_monthly
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         icon: mdi:piggy-bank
         state: >
           {{
@@ -105,7 +105,7 @@ template:
         unique_id: ev_home_charging_cost_billing
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         icon: mdi:cash
         state: >
           {% set kwh = states('sensor.ev_charging_billing') | float(0) %}
@@ -116,7 +116,7 @@ template:
         unique_id: ev_home_charging_gas_equivalent_billing
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         icon: mdi:gas-station
         state: >
           {% set kwh = states('sensor.ev_charging_billing') | float(0) %}
@@ -129,7 +129,7 @@ template:
         unique_id: ev_home_charging_savings_billing
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         icon: mdi:piggy-bank
         state: >
           {{

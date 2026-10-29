@@ -222,7 +222,7 @@ template:
         unique_id: billing_cost_actual_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set current = states('sensor.billing_cost_actual_total') | float(0) %}
           {% set day = states('sensor.energy_billing_cycle_day') | float(0) %}
@@ -234,7 +234,7 @@ template:
         unique_id: billing_cost_without_solar_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set current = states('sensor.billing_cost_without_solar_total') | float(0) %}
           {% set day = states('sensor.energy_billing_cycle_day') | float(0) %}
@@ -246,7 +246,7 @@ template:
         unique_id: billing_solar_savings_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set current = states('sensor.billing_solar_savings_total') | float(0) %}
           {% set day = states('sensor.energy_billing_cycle_day') | float(0) %}
@@ -258,7 +258,7 @@ template:
         unique_id: billing_cost_remaining_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set projected = states('sensor.billing_cost_actual_projected') %}
           {% set current = states('sensor.billing_cost_actual_total') | float(0) %}
@@ -272,7 +272,7 @@ template:
         unique_id: billing_projected_vs_current_delta
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set projected = states('sensor.billing_cost_actual_projected') %}
           {% set current = states('sensor.billing_cost_actual_total') | float(0) %}
@@ -452,7 +452,7 @@ template:
         unique_id: ev_home_charging_cost_monthly_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set current = states('sensor.ev_home_charging_cost_monthly') %}
           {% set day = now().day | float(1) %}
@@ -466,7 +466,7 @@ template:
         unique_id: ev_home_charging_gas_equivalent_monthly_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set current = states('sensor.ev_home_charging_gas_equivalent_monthly') %}
           {% set day = now().day | float(1) %}
@@ -480,7 +480,7 @@ template:
         unique_id: ev_home_charging_savings_monthly_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set current = states('sensor.ev_home_charging_savings_monthly') %}
           {% set day = now().day | float(1) %}
@@ -568,7 +568,7 @@ template:
         unique_id: solar_savings_yearly_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set current = states('sensor.solar_savings_yearly') %}
           {% set day = states('sensor.energy_year_day') | float(0) %}
@@ -580,7 +580,7 @@ template:
         unique_id: solar_savings_monthly_projected
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set projected = states('sensor.billing_solar_savings_projected') %}
           {{ projected if projected not in ['unknown', 'unavailable', 'none', 'None', ''] else 'unknown' }}
@@ -589,7 +589,7 @@ template:
         unique_id: solar_savings_projected_vs_average
         unit_of_measurement: "$"
         device_class: monetary
-        state_class: measurement
+        state_class: total
         state: >
           {% set projected = states('sensor.solar_savings_monthly_projected') %}
           {% set average = states('sensor.solar_savings_average_monthly') | float(0) %}
